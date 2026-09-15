@@ -1,0 +1,1567 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#d9531f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NC2500 Log">
+<title>NC2500 Battery Log</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --bg:#eef1f3;
+    --surface:#ffffff;
+    --surface-2:#e3e8ec;
+    --border:#c7d0d8;
+    --text:#1b2430;
+    --muted:#5b6b7a;
+    --accent:#d9531f;
+    --accent-ink:#fff8f4;
+    --data:#0e7c86;
+    --good:#2f8f4e;      --good-bg:#e3f3e6;
+    --warn:#a8710b;      --warn-bg:#f7ecd6;
+    --critical:#b23a3a;  --critical-bg:#f8e2e2;
+    --font-display:'Archivo',system-ui,-apple-system,sans-serif;
+    --font-mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#10151b; --surface:#1a222b; --surface-2:#212b35; --border:#2c3843;
+      --text:#e7edf2; --muted:#93a3b0;
+      --accent:#ff7a45; --accent-ink:#1a0f08;
+      --data:#3fcdd9;
+      --good:#4caf6e; --good-bg:#16301f;
+      --warn:#e0a934; --warn-bg:#332409;
+      --critical:#e2585f; --critical-bg:#34181a;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#10151b; --surface:#1a222b; --surface-2:#212b35; --border:#2c3843;
+    --text:#e7edf2; --muted:#93a3b0;
+    --accent:#ff7a45; --accent-ink:#1a0f08;
+    --data:#3fcdd9;
+    --good:#4caf6e; --good-bg:#16301f;
+    --warn:#e0a934; --warn-bg:#332409;
+    --critical:#e2585f; --critical-bg:#34181a;
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:var(--font-display);
+    -webkit-tap-highlight-color:transparent;
+  }
+  .app{ max-width:560px; margin:0 auto; padding:16px 16px 48px; }
+
+  h1,h2,h3{ font-family:var(--font-display); text-wrap:balance; margin:0; }
+  .num, input, table, .pill, button{ font-variant-numeric:tabular-nums; }
+
+  .topbar{ display:flex; align-items:center; gap:12px; padding:4px 0 14px; }
+  .brand{ display:flex; align-items:center; gap:10px; flex:1; min-width:0; }
+  .brand svg{ flex:none; }
+  .brand-text h1{ font-size:1.05rem; font-weight:800; letter-spacing:.01em; }
+  .brand-text p{ margin:1px 0 0; font-size:.72rem; color:var(--muted); font-family:var(--font-mono); }
+
+  .pill{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:.68rem; font-weight:600; font-family:var(--font-mono);
+    padding:5px 10px; border-radius:999px; white-space:nowrap;
+    border:1px solid transparent;
+  }
+  .pill-dot{ width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .pill.good{ background:var(--good-bg); color:var(--good); }
+  .pill.warn{ background:var(--warn-bg); color:var(--warn); }
+  .pill.critical{ background:var(--critical-bg); color:var(--critical); }
+  .pill.muted{ background:var(--surface-2); color:var(--muted); }
+
+  .tabs{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:16px; }
+  .tab{
+    font-family:var(--font-display); font-weight:700; font-size:.78rem;
+    padding:10px 6px; border-radius:10px; border:1px solid var(--border);
+    background:var(--surface); color:var(--muted); cursor:pointer;
+  }
+  .tab.active{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+
+  .panel{ display:none; flex-direction:column; gap:16px; }
+  .panel.active{ display:flex; }
+
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:16px; display:flex; flex-direction:column; gap:12px;
+  }
+  .card h2{ font-size:.95rem; font-weight:700; }
+  .field-label{ font-size:.72rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  .hint{ font-size:.8rem; color:var(--muted); line-height:1.45; margin:0; }
+
+  .mode-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+  .mode-btn{
+    font-family:var(--font-display); font-weight:600; font-size:.8rem;
+    padding:10px 8px; border-radius:10px; border:1px solid var(--border);
+    background:var(--surface-2); color:var(--text); cursor:pointer; text-align:left;
+  }
+  .mode-btn small{ display:block; font-weight:400; color:var(--muted); font-size:.68rem; margin-top:2px; }
+  .mode-btn.active{ background:var(--data); border-color:var(--data); color:#04292c; }
+  .mode-btn.active small{ color:#0a3d41; }
+
+  .slot-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .slot-field{ display:flex; flex-direction:column; gap:4px; }
+  .slot-field label{ font-size:.68rem; color:var(--muted); font-family:var(--font-mono); }
+  input[type="text"], input[type="number"]{
+    font-family:var(--font-mono); font-size:.95rem; padding:9px 10px;
+    border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text);
+    width:100%;
+  }
+  input:focus{ outline:2px solid var(--data); outline-offset:1px; }
+
+  .btn-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  button{ font-family:var(--font-display); cursor:pointer; border-radius:10px; border:1px solid transparent; font-weight:700; }
+  .btn-primary{ background:var(--accent); color:var(--accent-ink); padding:12px 16px; font-size:.88rem; flex:1; }
+  .btn-primary:disabled{ opacity:.45; cursor:not-allowed; }
+  .btn-secondary{ background:var(--surface-2); color:var(--text); border-color:var(--border); padding:12px 16px; font-size:.85rem; }
+  .btn-ghost{ background:transparent; color:var(--data); border:1px solid var(--border); padding:10px 14px; font-size:.8rem; }
+  .btn-danger{ background:transparent; color:var(--critical); border:none; font-size:.9rem; padding:2px 6px; }
+
+  .capture-zone{ display:flex; flex-direction:column; gap:10px; }
+  #fileInput{ display:none; }
+  canvas#viewCanvas{ width:100%; height:auto; border-radius:10px; border:1px solid var(--border); touch-action:none; display:block; }
+  .crop-hint{ font-size:.72rem; color:var(--muted); font-family:var(--font-mono); }
+
+  .progress-wrap{ display:none; flex-direction:column; gap:6px; }
+  .progress-wrap.active{ display:flex; }
+  .progress-track{ height:6px; border-radius:99px; background:var(--surface-2); overflow:hidden; }
+  .progress-fill{ height:100%; width:0%; background:var(--data); transition:width .2s ease; }
+  .progress-label{ font-size:.72rem; color:var(--muted); font-family:var(--font-mono); }
+
+  table{ width:100%; border-collapse:collapse; font-family:var(--font-mono); font-size:.78rem; }
+  th{ text-align:left; font-size:.65rem; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); padding:6px 6px; border-bottom:1px solid var(--border); }
+  td{ padding:7px 6px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  .results-table input{ padding:6px 6px; font-size:.82rem; }
+  .table-scroll{ overflow-x:auto; }
+  .slot-badge{ display:inline-flex; align-items:center; gap:5px; font-size:.72rem; }
+  .conf-dot{ width:7px; height:7px; border-radius:50%; flex:none; }
+  .conf-dot.match{ background:var(--good); }
+  .conf-dot.guess{ background:var(--warn); }
+  .conf-dot.none{ background:var(--border); }
+
+  details{ font-size:.75rem; color:var(--muted); }
+  details summary{ cursor:pointer; font-family:var(--font-mono); }
+  details pre{ white-space:pre-wrap; font-family:var(--font-mono); background:var(--surface-2); padding:10px; border-radius:8px; margin-top:8px; }
+
+  .toast{ font-size:.8rem; padding:10px 12px; border-radius:10px; background:var(--good-bg); color:var(--good); display:none; }
+  .toast.show{ display:block; }
+  .toast.err{ background:var(--critical-bg); color:var(--critical); }
+
+  .log-controls{ display:flex; gap:8px; align-items:center; }
+  select{ font-family:var(--font-mono); font-size:.82rem; padding:9px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); flex:1; }
+
+  .empty-state{ text-align:center; padding:28px 10px; color:var(--muted); font-size:.85rem; }
+
+  textarea.export-fallback{ width:100%; min-height:140px; font-family:var(--font-mono); font-size:.72rem; padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--text); }
+
+  .tabs.tabs-2{ grid-template-columns:repeat(2,1fr); margin-bottom:0; }
+
+  .video-wrap{ position:relative; width:100%; border-radius:10px; overflow:hidden; border:1px solid var(--border); background:#000; }
+  .video-wrap video{ width:100%; display:block; }
+  .video-wrap canvas{ position:absolute; inset:0; width:100%; height:100%; touch-action:none; }
+
+  .live-status{ display:flex; flex-direction:column; gap:10px; }
+  .live-status-row{ display:flex; align-items:center; gap:10px; font-family:var(--font-mono); font-size:.8rem; }
+  .live-elapsed{ font-weight:600; }
+  .live-count{ color:var(--muted); }
+  #liveTable{ font-size:.7rem; }
+
+  .session-row{ display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:.78rem; padding:9px 0; border-bottom:1px solid var(--border); }
+  .session-row:last-child{ border-bottom:none; }
+
+  @media (max-width:380px){
+    .mode-grid{ grid-template-columns:1fr; }
+  }
+</style>
+
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="7" width="22" height="16" rx="3" stroke="var(--accent)" stroke-width="2"/>
+        <rect x="24" y="12" width="4" height="6" rx="1" fill="var(--accent)"/>
+        <path d="M9 12.5L13 12.5L11 17.5L15 17.5L10.5 23L11.5 15.5L8 15.5L9 12.5Z" fill="var(--data)"/>
+      </svg>
+      <div class="brand-text">
+        <h1>NC2500 Battery Log</h1>
+        <p>logger OCR &middot; Mini4WD</p>
+      </div>
+    </div>
+    <span class="pill muted" id="statusPill"><span class="pill-dot"></span><span id="statusPillText">avvio&hellip;</span></span>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="setup" type="button">1 &middot; Sessione</button>
+    <button class="tab" data-tab="capture" type="button">2 &middot; Cattura</button>
+    <button class="tab" data-tab="log" type="button">3 &middot; Registro</button>
+  </nav>
+
+  <main>
+    <!-- PANEL 1: SETUP -->
+    <section class="panel active" id="tab-setup">
+      <div class="card">
+        <h2>Modalit&agrave; carica batterie</h2>
+        <p class="hint">Scegli cosa sta facendo l'NC2500 Pro adesso: cambia quali campi vengono letti dallo schermo.</p>
+        <div class="mode-grid" id="modeGrid"></div>
+      </div>
+
+      <div class="card">
+        <h2>Batterie negli slot</h2>
+        <p class="hint">ID che hai scritto sull'etichetta di ogni batteria, per lo slot in cui l'hai inserita ora. Lascia vuoto uno slot che non stai usando.</p>
+        <div class="slot-grid" id="slotGrid"></div>
+        <div class="btn-row">
+          <button class="btn-secondary" id="recallBtn" type="button">Richiama ultimi ID</button>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-primary" id="goCaptureBtn" type="button">Continua &rarr; Cattura</button>
+      </div>
+    </section>
+
+    <!-- PANEL 2: CAPTURE -->
+    <section class="panel" id="tab-capture">
+      <div class="tabs tabs-2">
+        <button class="tab active" data-capture-mode="single" type="button">Scatto singolo</button>
+        <button class="tab" data-capture-mode="auto" type="button">Registrazione curva</button>
+      </div>
+
+      <div class="card" id="singleShotCard">
+        <h2>Foto del display</h2>
+        <p class="hint" id="captureHint">Inquadra lo schermo dell'NC2500 Pro, ben illuminato e senza riflessi, riempiendo il pi&ugrave; possibile l'inquadratura.</p>
+        <div class="capture-zone">
+          <input type="file" id="fileInput" accept="image/*" capture="environment">
+          <div class="btn-row">
+            <button class="btn-primary" id="shootBtn" type="button">Scatta foto display</button>
+          </div>
+          <canvas id="viewCanvas" style="display:none;"></canvas>
+          <p class="crop-hint" id="cropHint" style="display:none;">Facoltativo: tocca due angoli opposti dell'area dello schermo per ritagliare, migliora la lettura.</p>
+          <div class="btn-row" id="cropButtons" style="display:none;">
+            <button class="btn-secondary" id="resetCropBtn" type="button">Reimposta ritaglio</button>
+            <button class="btn-primary" id="analyzeBtn" type="button">Analizza (OCR)</button>
+          </div>
+        </div>
+        <div class="progress-wrap" id="progressWrap">
+          <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+          <span class="progress-label" id="progressLabel">&nbsp;</span>
+        </div>
+      </div>
+
+      <div class="card" id="autoRecordCard" style="display:none;">
+        <h2>Registrazione curva nel tempo</h2>
+        <p class="hint">Il telefono fotografa e legge il display a intervalli regolari, per registrare l'andamento durante tutta la carica/scarica. Tieni il telefono fermo davanti al display, con lo schermo del telefono sempre acceso e, se possibile, collegato alla corrente per tutta la durata.</p>
+
+        <div class="slot-field">
+          <label for="intervalSelect">Intervallo tra le letture</label>
+          <select id="intervalSelect">
+            <option value="2">Ogni 2 secondi</option>
+            <option value="5">Ogni 5 secondi</option>
+            <option value="30" selected>Ogni 30 secondi</option>
+            <option value="60">Ogni minuto</option>
+            <option value="120">Ogni 2 minuti</option>
+          </select>
+          <p class="crop-hint">A 2-5s l'OCR (circa 1-3s a lettura) pu&ograve; non stare al passo: l'app salta il giro invece di accodarlo, quindi il ritmo reale pu&ograve; allungarsi un po' su telefoni pi&ugrave; lenti.</p>
+        </div>
+
+        <div class="video-wrap" id="videoWrap" style="display:none;">
+          <video id="liveVideo" playsinline muted autoplay></video>
+          <canvas id="overlayCanvas"></canvas>
+        </div>
+        <p class="crop-hint" id="liveCropHint" style="display:none;">Facoltativo: tocca due angoli opposti dell'area dello schermo per ritagliare. Il ritaglio scelto vale per tutta la registrazione.</p>
+
+        <div class="btn-row">
+          <button class="btn-primary" id="startCameraBtn" type="button">Avvia fotocamera</button>
+          <button class="btn-secondary" id="resetLiveCropBtn" type="button" style="display:none;">Reimposta ritaglio</button>
+        </div>
+        <div id="cameraErrorBox" style="display:none; margin-top:10px; padding:10px 12px; border-radius:10px; background:var(--critical-bg); color:var(--critical); font-size:.85rem; line-height:1.5;"></div>
+        <p class="crop-hint" id="cameraFrameHint" style="display:none;">Se il pulsante non fa nulla o la fotocamera non si avvia, prova ad aprire l'app a schermo intero (fuori dalla chat), tramite il link/anteprima dell'app, invece di usarla nella scheda dentro la conversazione: alcune anteprime integrate non concedono l'accesso alla fotocamera.</p>
+        <div class="btn-row" id="startRecordingRow" style="display:none;">
+          <button class="btn-primary" id="startRecordingBtn" type="button">Avvia registrazione</button>
+        </div>
+
+        <div class="live-status" id="liveStatus" style="display:none;">
+          <div class="live-status-row">
+            <span class="pill critical"><span class="pill-dot"></span>REC</span>
+            <span class="live-elapsed" id="liveElapsed">00:00</span>
+            <span class="live-count" id="liveCount">0 letture</span>
+          </div>
+          <div class="table-scroll">
+            <table id="liveTable"><thead><tr id="liveTableHead"></tr></thead><tbody id="liveTableBody"></tbody></table>
+          </div>
+          <div class="btn-row">
+            <button class="btn-secondary" id="stopRecordingBtn" type="button">Ferma registrazione</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="sessionReviewCard" style="display:none;">
+        <h2>Sessione conclusa</h2>
+        <p class="hint" id="sessionReviewSummary"></p>
+        <div class="slot-field">
+          <label for="sessionNoteInput">Nota (opzionale)</label>
+          <input type="text" id="sessionNoteInput" placeholder="es. carica notturna, 25&deg;C ambiente&hellip;">
+        </div>
+        <div class="btn-row">
+          <button class="btn-secondary" id="discardSessionBtn" type="button">Scarta</button>
+          <button class="btn-primary" id="saveSessionBtn" type="button">Salva sessione nel registro</button>
+        </div>
+        <div class="toast" id="sessionToast"></div>
+      </div>
+
+      <div class="card" id="resultsCard" style="display:none;">
+        <h2>Controlla e correggi</h2>
+        <p class="hint">La lettura OCR pu&ograve; sbagliare: verifica sempre i valori prima di salvare. Il pallino indica quanto la riga &egrave; affidabile.</p>
+        <div class="table-scroll">
+          <table class="results-table">
+            <thead><tr id="resultsHeaderRow"></tr></thead>
+            <tbody id="resultsBody"></tbody>
+          </table>
+        </div>
+        <div class="slot-field">
+          <label for="noteInput">Nota (opzionale, applicata a tutte le righe salvate ora)</label>
+          <input type="text" id="noteInput" placeholder="es. dopo 3&deg; ciclo, contatti puliti&hellip;">
+        </div>
+        <details>
+          <summary>Testo grezzo letto dall'OCR</summary>
+          <pre id="rawTextBox"></pre>
+        </details>
+        <div class="btn-row">
+          <button class="btn-primary" id="saveReadingsBtn" type="button">Salva nel registro</button>
+        </div>
+        <div class="toast" id="saveToast"></div>
+      </div>
+    </section>
+
+    <!-- PANEL 3: LOG -->
+    <section class="panel" id="tab-log">
+      <div class="card">
+        <h2>Registro letture</h2>
+        <div class="log-controls">
+          <select id="filterSelect">
+            <option value="">Tutte le batterie</option>
+          </select>
+        </div>
+        <div class="table-scroll">
+          <table id="logTable">
+            <thead>
+              <tr>
+                <th>Data/ora</th><th>Slot</th><th>ID</th><th>Modo</th>
+                <th>A</th><th>V</th><th>mAh</th><th>m&Omega;</th><th>Nota</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="logBody"></tbody>
+          </table>
+        </div>
+        <div class="empty-state" id="logEmpty">Nessuna lettura salvata ancora.<br>Vai su &laquo;Cattura&raquo; per registrare la prima.</div>
+      </div>
+
+      <div class="card" id="sessionsCard" style="display:none;">
+        <h2>Sessioni registrate</h2>
+        <p class="hint">Ogni sessione registrata compare anche come tante righe nel registro qui sopra (una per lettura). Eliminala solo da qui: cancella l'intera curva di quello slot.</p>
+        <div id="sessionsList"></div>
+      </div>
+
+      <div class="card">
+        <h2>Esporta</h2>
+        <p class="hint">Genera un file con le letture visibili (rispetta il filtro qui sopra) da importare nel foglio di calcolo.</p>
+        <div class="btn-row">
+          <button class="btn-secondary" id="exportCsvBtn" type="button">Esporta CSV</button>
+          <button class="btn-secondary" id="exportTxtBtn" type="button">Esporta TXT</button>
+        </div>
+        <textarea class="export-fallback" id="exportFallback" style="display:none;" readonly></textarea>
+        <div class="btn-row" id="copyRow" style="display:none;">
+          <button class="btn-ghost" id="copyBtn" type="button">Copia negli appunti</button>
+        </div>
+        <div class="toast" id="exportToast"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="tesseract.min.js"></script>
+<script src="eng-data.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  // ---------- constants ----------
+  var MODES = [
+    { key:'charge',    label:'Carica',           sub:'corrente / tensione / mAh', fields:['current','voltage','capacity'] },
+    { key:'discharge',  label:'Scarica',          sub:'corrente / tensione / mAh', fields:['current','voltage','capacity'] },
+    { key:'cycle',      label:'Ciclo',            sub:'corrente / tensione / mAh', fields:['current','voltage','capacity'] },
+    { key:'refresh',    label:'Ripristino',       sub:'corrente / tensione / mAh', fields:['current','voltage','capacity'] },
+    { key:'ir',         label:'Resistenza (IR)',  sub:'tensione / mΩ — layout da confermare', fields:['voltage','resistance'] }
+  ];
+  var MODE_LABELS = {}; var MODE_FIELDS = {};
+  MODES.forEach(function(m){ MODE_LABELS[m.key]=m.label; MODE_FIELDS[m.key]=m.fields; });
+
+  var FIELD_META = {
+    current:    { label:'A',   step:'0.01' },
+    voltage:    { label:'V',   step:'0.01' },
+    capacity:   { label:'mAh', step:'1' },
+    resistance: { label:'mΩ', step:'0.1' }
+  };
+
+  var MAX_DIM = 1400;
+
+  // ---------- state ----------
+  var state = {
+    mode: 'charge',
+    slotIds: ['', '', '', '', '', ''],
+    workCanvas: null,
+    cropPoints: [],
+    parsedRows: null,
+    readings: []
+  };
+
+  var dbApi = null;
+  var downloadsApi = null;
+  var storageMode = 'local'; // 'cloud' | 'local'
+
+  // ---------- utils ----------
+  function $(id){ return document.getElementById(id); }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+
+  function fmtDate(iso){
+    try { return new Date(iso).toLocaleString('it-IT'); } catch(e){ return iso; }
+  }
+
+  // ================= capabilities =================
+  function updateStatusPill(){
+    var pill = $('statusPill'), text = $('statusPillText');
+    pill.classList.remove('good','warn','critical','muted');
+    if (storageMode === 'cloud'){
+      pill.classList.add('good');
+      text.textContent = 'dati sincronizzati';
+    } else {
+      pill.classList.add('warn');
+      text.textContent = 'solo su questo telefono';
+    }
+  }
+
+  function initCapabilities(){
+    var p;
+    try {
+      if (window.claude && typeof window.claude.use === 'function'){
+        p = Promise.all([
+          window.claude.use('db').catch(function(){ return null; }),
+          window.claude.use('downloads').catch(function(){ return null; })
+        ]);
+      } else {
+        p = Promise.resolve([null,null]);
+      }
+    } catch(e){ p = Promise.resolve([null,null]); }
+
+    p.then(function(res){
+      dbApi = res[0]; downloadsApi = res[1];
+      storageMode = dbApi ? 'cloud' : 'local';
+      updateStatusPill();
+      return loadReadings();
+    });
+  }
+
+  // ================= storage =================
+  function loadLocal(){
+    try { return JSON.parse(localStorage.getItem('nc2500_readings') || '[]'); }
+    catch(e){ return []; }
+  }
+  function saveLocal(){
+    try { localStorage.setItem('nc2500_readings', JSON.stringify(state.readings)); }
+    catch(e){}
+  }
+
+  function loadReadings(){
+    if (dbApi){
+      return dbApi.collection('readings').orderBy('ts','desc').limit(500).get()
+        .then(function(snap){
+          state.readings = snap.docs.map(function(d){
+            var data = d.data() || {};
+            data.id = d.id;
+            return data;
+          });
+          renderLog();
+        })
+        .catch(function(){
+          storageMode = 'local';
+          updateStatusPill();
+          state.readings = loadLocal();
+          renderLog();
+        });
+    }
+    state.readings = loadLocal();
+    renderLog();
+    return Promise.resolve();
+  }
+
+  function addReading(row){
+    row.ts = new Date().toISOString();
+    if (dbApi){
+      return dbApi.collection('readings').add(row)
+        .then(function(ref){
+          var copy = Object.assign({ id: ref.id }, row);
+          state.readings.unshift(copy);
+          renderLog();
+        })
+        .catch(function(){
+          row.id = 'local_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+          state.readings.unshift(row);
+          saveLocal();
+          renderLog();
+        });
+    }
+    row.id = 'local_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+    state.readings.unshift(row);
+    saveLocal();
+    renderLog();
+    return Promise.resolve();
+  }
+
+  function deleteReading(id){
+    state.readings = state.readings.filter(function(r){ return r.id !== id; });
+    saveLocal();
+    renderLog();
+    if (dbApi && String(id).indexOf('local_') !== 0){
+      dbApi.collection('readings').doc(id).delete().catch(function(){});
+    }
+  }
+
+  function addSessionDoc(doc){
+    if (dbApi){
+      return dbApi.collection('readings').add(doc)
+        .then(function(ref){
+          var copy = Object.assign({ id: ref.id }, doc);
+          state.readings.unshift(copy);
+          renderLog();
+        })
+        .catch(function(){
+          doc.id = 'local_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+          state.readings.unshift(doc);
+          saveLocal();
+          renderLog();
+        });
+    }
+    doc.id = 'local_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+    state.readings.unshift(doc);
+    saveLocal();
+    renderLog();
+    return Promise.resolve();
+  }
+
+  // A "session" document (from the automatic recording mode) carries a
+  // `samples` array instead of single current/voltage/... fields. Flatten it
+  // into one display row per sample so the log table and CSV/TXT export can
+  // treat manual and recorded readings identically.
+  function flattenDoc(doc){
+    if (Array.isArray(doc.samples)){
+      return doc.samples.map(function(s){
+        return {
+          id: doc.id,
+          _session: true,
+          ts: s.t,
+          mode: doc.mode,
+          slot: doc.slot,
+          batteryId: doc.batteryId,
+          current: (s.current === undefined) ? null : s.current,
+          voltage: (s.voltage === undefined) ? null : s.voltage,
+          capacity: (s.capacity === undefined) ? null : s.capacity,
+          resistance: (s.resistance === undefined) ? null : s.resistance,
+          note: doc.note || ''
+        };
+      });
+    }
+    return [doc];
+  }
+
+  function getFlatRows(){
+    var out = [];
+    state.readings.forEach(function(doc){ out = out.concat(flattenDoc(doc)); });
+    out.sort(function(a,b){ return new Date(b.ts) - new Date(a.ts); });
+    return out;
+  }
+
+  // ================= tabs =================
+  // Scoped to [data-tab] so this never touches the capture-mode switch
+  // buttons below, which reuse the same .tab styling with data-capture-mode.
+  function showTab(name){
+    document.querySelectorAll('.tab[data-tab]').forEach(function(t){
+      t.classList.toggle('active', t.dataset.tab === name);
+    });
+    document.querySelectorAll('.panel').forEach(function(p){
+      p.classList.toggle('active', p.id === 'tab-' + name);
+    });
+  }
+  document.querySelectorAll('.tab[data-tab]').forEach(function(t){
+    t.addEventListener('click', function(){ showTab(t.dataset.tab); });
+  });
+
+  // ================= setup panel =================
+  function buildModeGrid(){
+    var grid = $('modeGrid');
+    grid.innerHTML = '';
+    MODES.forEach(function(m){
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'mode-btn' + (m.key === state.mode ? ' active' : '');
+      btn.dataset.mode = m.key;
+      btn.innerHTML = m.label + '<small>' + m.sub + '</small>';
+      btn.addEventListener('click', function(){
+        state.mode = m.key;
+        buildModeGrid();
+        updateCaptureHint();
+      });
+      grid.appendChild(btn);
+    });
+  }
+
+  function buildSlotGrid(){
+    var grid = $('slotGrid');
+    grid.innerHTML = '';
+    for (var i = 0; i < 6; i++){
+      (function(i){
+        var wrap = document.createElement('div');
+        wrap.className = 'slot-field';
+        var label = document.createElement('label');
+        label.setAttribute('for', 'slot' + i);
+        label.textContent = 'Slot ' + (i + 1);
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.id = 'slot' + i;
+        input.placeholder = 'ID batteria';
+        input.value = state.slotIds[i];
+        input.addEventListener('input', function(){ state.slotIds[i] = input.value.trim(); });
+        wrap.appendChild(label);
+        wrap.appendChild(input);
+        grid.appendChild(wrap);
+      })(i);
+    }
+  }
+
+  $('recallBtn').addEventListener('click', function(){
+    try {
+      var last = JSON.parse(localStorage.getItem('nc2500_last_setup') || 'null');
+      if (last && Array.isArray(last.slotIds)){
+        state.slotIds = last.slotIds.slice(0,6);
+        while (state.slotIds.length < 6) state.slotIds.push('');
+        if (last.mode) state.mode = last.mode;
+        buildModeGrid();
+        buildSlotGrid();
+        updateCaptureHint();
+      }
+    } catch(e){}
+  });
+
+  $('goCaptureBtn').addEventListener('click', function(){
+    try {
+      localStorage.setItem('nc2500_last_setup', JSON.stringify({ mode: state.mode, slotIds: state.slotIds }));
+    } catch(e){}
+    updateCaptureHint();
+    showTab('capture');
+  });
+
+  function updateCaptureHint(){
+    var m = MODES.filter(function(m){ return m.key === state.mode; })[0];
+    var text = 'Inquadra lo schermo dell\'NC2500 Pro in modalità "' + (m ? m.label : state.mode) + '", ben illuminato e senza riflessi.';
+    $('captureHint').textContent = text;
+  }
+
+  // ================= capture: photo intake =================
+  var viewCanvas = $('viewCanvas');
+  var viewCtx = viewCanvas.getContext('2d');
+  var loadedImage = null;
+
+  $('shootBtn').addEventListener('click', function(){ $('fileInput').click(); });
+
+  $('fileInput').addEventListener('change', function(e){
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function(){
+      var scale = Math.min(1, MAX_DIM / Math.max(img.naturalWidth, img.naturalHeight));
+      var tw = Math.round(img.naturalWidth * scale);
+      var th = Math.round(img.naturalHeight * scale);
+
+      var work = document.createElement('canvas');
+      work.width = tw; work.height = th;
+      work.getContext('2d').drawImage(img, 0, 0, tw, th);
+      state.workCanvas = work;
+      loadedImage = work;
+
+      viewCanvas.width = tw; viewCanvas.height = th;
+      viewCanvas.style.display = 'block';
+      $('cropHint').style.display = 'block';
+      $('cropButtons').style.display = 'flex';
+      $('resultsCard').style.display = 'none';
+      state.cropPoints = [];
+      redrawOverlay();
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); };
+    img.src = url;
+    e.target.value = '';
+  });
+
+  function redrawOverlay(){
+    if (!loadedImage) return;
+    viewCtx.drawImage(loadedImage, 0, 0);
+    var pts = state.cropPoints;
+    viewCtx.save();
+    viewCtx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--data') || '#0e7c86';
+    viewCtx.lineWidth = Math.max(2, viewCanvas.width / 300);
+    viewCtx.setLineDash([8, 6]);
+    pts.forEach(function(p){
+      viewCtx.beginPath();
+      viewCtx.arc(p.x, p.y, viewCtx.lineWidth * 2, 0, Math.PI * 2);
+      viewCtx.fillStyle = viewCtx.strokeStyle;
+      viewCtx.fill();
+    });
+    if (pts.length === 2){
+      var x = Math.min(pts[0].x, pts[1].x);
+      var y = Math.min(pts[0].y, pts[1].y);
+      var w = Math.abs(pts[0].x - pts[1].x);
+      var h = Math.abs(pts[0].y - pts[1].y);
+      viewCtx.strokeRect(x, y, w, h);
+    }
+    viewCtx.restore();
+  }
+
+  function canvasPointFromEvent(evt){
+    var rect = viewCanvas.getBoundingClientRect();
+    var scaleX = viewCanvas.width / rect.width;
+    var scaleY = viewCanvas.height / rect.height;
+    var clientX = evt.clientX, clientY = evt.clientY;
+    return {
+      x: clamp((clientX - rect.left) * scaleX, 0, viewCanvas.width),
+      y: clamp((clientY - rect.top) * scaleY, 0, viewCanvas.height)
+    };
+  }
+
+  viewCanvas.addEventListener('pointerdown', function(evt){
+    if (!loadedImage) return;
+    var p = canvasPointFromEvent(evt);
+    if (state.cropPoints.length >= 2) state.cropPoints = [];
+    state.cropPoints.push(p);
+    redrawOverlay();
+  });
+
+  $('resetCropBtn').addEventListener('click', function(){
+    state.cropPoints = [];
+    redrawOverlay();
+  });
+
+  // ================= OCR =================
+  // Tesseract.js fetches its English language data from a CDN by default.
+  // We ship it ourselves (base64 in eng-data.js) and seed it into the same
+  // IndexedDB store tesseract.js already checks before hitting the network
+  // (idb-keyval's default "keyval-store"/"keyval"), so the worker finds it
+  // in cache and never has to fetch anything cross-origin.
+  var langCachePromise = null;
+  function ensureLangCached(){
+    if (!langCachePromise){
+      langCachePromise = new Promise(function(resolve){
+        try {
+          var b64 = window.__ENG_TRAINEDDATA_B64__;
+          if (!b64){ resolve(false); return; }
+          var binary = atob(b64);
+          var len = binary.length;
+          var bytes = new Uint8Array(len);
+          for (var i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+
+          var req = indexedDB.open('keyval-store');
+          req.onupgradeneeded = function(){ req.result.createObjectStore('keyval'); };
+          req.onsuccess = function(){
+            var db = req.result;
+            var tx = db.transaction('keyval', 'readwrite');
+            tx.objectStore('keyval').put(bytes, './eng.traineddata');
+            tx.oncomplete = function(){ resolve(true); };
+            tx.onerror = function(){ resolve(false); };
+          };
+          req.onerror = function(){ resolve(false); };
+        } catch (e){ resolve(false); }
+      });
+    }
+    return langCachePromise;
+  }
+
+  var workerPromise = null;
+  function getWorker(){
+    if (!workerPromise){
+      workerPromise = ensureLangCached().then(function(){
+        return Tesseract.createWorker('eng', 1, {
+          corePath: '.',
+          workerPath: 'worker.min.js',
+          langPath: '.',
+          gzip: true,
+          cacheMethod: 'write',
+          logger: onOcrProgress
+        });
+      }).then(function(worker){
+        return worker.setParameters({
+          tessedit_pageseg_mode: '6',
+          tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.:- '
+        }).then(function(){ return worker; });
+      });
+    }
+    return workerPromise;
+  }
+
+  function onOcrProgress(m){
+    var wrap = $('progressWrap');
+    wrap.classList.add('active');
+    var pct = m && typeof m.progress === 'number' ? Math.round(m.progress * 100) : 0;
+    $('progressFill').style.width = pct + '%';
+    var statusMap = {
+      'loading tesseract core': 'Caricamento motore OCR…',
+      'initializing tesseract': 'Inizializzazione…',
+      'loading language traineddata': 'Caricamento dati lingua…',
+      'initializing api': 'Preparazione…',
+      'recognizing text': 'Lettura del display…'
+    };
+    $('progressLabel').textContent = (statusMap[m && m.status] || (m && m.status) || '…') + ' ' + pct + '%';
+  }
+
+  $('analyzeBtn').addEventListener('click', function(){
+    if (!state.workCanvas) return;
+    var cropCanvas = state.workCanvas;
+    var pts = state.cropPoints;
+    if (pts.length === 2){
+      var x = Math.round(Math.min(pts[0].x, pts[1].x));
+      var y = Math.round(Math.min(pts[0].y, pts[1].y));
+      var w = Math.round(Math.abs(pts[0].x - pts[1].x));
+      var h = Math.round(Math.abs(pts[0].y - pts[1].y));
+      if (w > 20 && h > 10){
+        var c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(state.workCanvas, x, y, w, h, 0, 0, w, h);
+        cropCanvas = c;
+      }
+    }
+    runOcr(cropCanvas);
+  });
+
+  function setBusy(isBusy){
+    $('analyzeBtn').disabled = isBusy;
+    $('shootBtn').disabled = isBusy;
+    if (!isBusy) $('progressWrap').classList.remove('active');
+  }
+
+  function runOcr(canvas){
+    setBusy(true);
+    $('progressWrap').classList.add('active');
+    $('progressLabel').textContent = 'Avvio…';
+    $('progressFill').style.width = '0%';
+    getWorker()
+      .then(function(worker){ return worker.recognize(canvas); })
+      .then(function(result){
+        var text = result && result.data ? result.data.text : '';
+        $('rawTextBox').textContent = text || '(nessun testo riconosciuto)';
+        var rows = parseModeText(state.mode, text || '');
+        state.parsedRows = rows;
+        renderResultsTable(rows);
+        $('resultsCard').style.display = 'flex';
+      })
+      .catch(function(err){
+        $('rawTextBox').textContent = 'Errore OCR: ' + (err && err.message ? err.message : err);
+        renderResultsTable({});
+        $('resultsCard').style.display = 'flex';
+      })
+      .then(function(){ setBusy(false); });
+  }
+
+  // ---- parsing ----
+  var TEMPLATES = {
+    charge:    /C\s*([1-6])\D{0,6}?([0-9]+(?:\.[0-9]+)?)\s*A\D{0,6}?([0-9]+(?:\.[0-9]+)?)\s*V\D{0,6}?([0-9]+(?:\.[0-9]+)?)\s*m\s*A\s*h/i,
+    discharge: /C\s*([1-6])\D{0,6}?([0-9]+(?:\.[0-9]+)?)\s*A\D{0,6}?([0-9]+(?:\.[0-9]+)?)\s*V\D{0,6}?([0-9]+(?:\.[0-9]+)?)\s*m\s*A\s*h/i,
+    cycle:     /C\s*([1-6])\D{0,6}?([0-9]+(?:\.[0-9]+)?)\s*A\D{0,6}?([0-9]+(?:\.[0-9]+)?)\s*V\D{0,6}?([0-9]+(?:\.[0-9]+)?)\s*m\s*A\s*h/i,
+    refresh:   /C\s*([1-6])\D{0,6}?([0-9]+(?:\.[0-9]+)?)\s*A\D{0,6}?([0-9]+(?:\.[0-9]+)?)\s*V\D{0,6}?([0-9]+(?:\.[0-9]+)?)\s*m\s*A\s*h/i,
+    ir:        /C\s*([1-6])\D{0,6}?([0-9]+(?:\.[0-9]+)?)\s*V\D{0,8}?([0-9]+(?:\.[0-9]+)?)\s*m?[ΩRr]/i
+  };
+
+  function parseModeText(mode, text){
+    var lines = text.split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean);
+    var re = TEMPLATES[mode] || TEMPLATES.charge;
+    var rows = {};
+    lines.forEach(function(line){
+      var m = line.match(re);
+      if (m){
+        var slot = parseInt(m[1], 10);
+        if (slot >= 1 && slot <= 6 && !rows[slot]){
+          if (mode === 'ir'){
+            rows[slot] = { voltage: parseFloat(m[2]), resistance: parseFloat(m[3]), confidence: 'match' };
+          } else {
+            rows[slot] = { current: parseFloat(m[2]), voltage: parseFloat(m[3]), capacity: parseFloat(m[4]), confidence: 'match' };
+          }
+          return;
+        }
+      }
+      var slotMatch = line.match(/C\s*([1-6])/i);
+      if (slotMatch){
+        var slotNum = parseInt(slotMatch[1], 10);
+        if (slotNum >= 1 && slotNum <= 6 && !rows[slotNum]){
+          var rest = line.slice(slotMatch.index + slotMatch[0].length);
+          var nums = (rest.match(/[0-9]+(?:\.[0-9]+)?/g) || []).map(Number);
+          if (mode === 'ir'){
+            rows[slotNum] = { voltage: nums[0], resistance: nums[1], confidence: 'guess' };
+          } else {
+            rows[slotNum] = { current: nums[0], voltage: nums[1], capacity: nums[2], confidence: 'guess' };
+          }
+        }
+      }
+    });
+    return rows;
+  }
+
+  // ================= auto recording (curve over time) =================
+  var liveVideo = $('liveVideo');
+  var overlayCanvas = $('overlayCanvas');
+  var overlayCtx = overlayCanvas.getContext('2d');
+  var liveStream = null;
+  var liveCropPoints = [];
+  var liveCropRect = null;
+  var recordTimer = null;
+  var recordElapsedTimer = null;
+  var recordBusy = false;
+  var recordStartTime = null;
+  var wakeLockRef = null;
+  var sessionData = null;
+  var AUTO_SESSION_KEY = 'nc2500_inprogress_session';
+
+  document.querySelectorAll('.tab[data-capture-mode]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.tab[data-capture-mode]').forEach(function(b){ b.classList.toggle('active', b === btn); });
+      var mode = btn.dataset.captureMode;
+      $('singleShotCard').style.display = mode === 'single' ? 'flex' : 'none';
+      $('autoRecordCard').style.display = mode === 'auto' ? 'flex' : 'none';
+      if (mode !== 'single') $('resultsCard').style.display = 'none';
+    });
+  });
+
+  function overlayResize(){
+    var w = liveVideo.clientWidth, h = liveVideo.clientHeight;
+    if (w && h){ overlayCanvas.width = w; overlayCanvas.height = h; }
+  }
+  window.addEventListener('resize', overlayResize);
+
+  function isFramed(){
+    try { return window.self !== window.top; } catch(e){ return true; }
+  }
+
+  function showCameraError(html){
+    var box = $('cameraErrorBox');
+    box.innerHTML = html;
+    box.style.display = 'block';
+  }
+  function hideCameraError(){
+    $('cameraErrorBox').style.display = 'none';
+  }
+
+  // Se la pagina e' incorporata (es. anteprima dentro la chat) mostra subito
+  // l'avviso: molte anteprime integrate non concedono il permesso fotocamera
+  // via getUserMedia, anche se lo scatto singolo (che usa la fotocamera nativa
+  // del telefono tramite l'input file) funziona comunque.
+  if (isFramed()){
+    $('cameraFrameHint').style.display = 'block';
+  }
+
+  $('startCameraBtn').addEventListener('click', function(){
+    hideCameraError();
+
+    if (!window.isSecureContext){
+      showCameraError('La pagina non è caricata in modo sicuro (serve https). La fotocamera non può partire da qui.');
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      showCameraError('Questo browser non espone l\'accesso diretto alla fotocamera (getUserMedia non disponibile). Prova ad aggiornare il browser o ad aprire l\'app a schermo intero fuori dalla chat.');
+      return;
+    }
+
+    $('startCameraBtn').disabled = true;
+    $('startCameraBtn').textContent = 'Avvio in corso…';
+
+    var settled = false;
+    var stallTimer = window.setTimeout(function(){
+      if (settled) return;
+      showCameraError('La fotocamera non ha ancora risposto dopo alcuni secondi: probabilmente il permesso è bloccato da questa visualizzazione (per esempio l\'anteprima dentro la chat). Prova ad aprire l\'app a schermo intero, fuori dalla conversazione, e a ridare "Avvia fotocamera".');
+      $('cameraFrameHint').style.display = 'block';
+    }, 6000);
+
+    navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false
+    }).then(function(stream){
+      settled = true;
+      window.clearTimeout(stallTimer);
+      liveStream = stream;
+      liveVideo.srcObject = stream;
+      $('videoWrap').style.display = 'block';
+      liveVideo.onloadedmetadata = function(){ overlayResize(); };
+      $('liveCropHint').style.display = 'block';
+      $('resetLiveCropBtn').style.display = 'inline-block';
+      $('startRecordingRow').style.display = 'flex';
+      $('startCameraBtn').disabled = true;
+      $('startCameraBtn').textContent = 'Fotocamera attiva';
+      hideCameraError();
+    }).catch(function(err){
+      settled = true;
+      window.clearTimeout(stallTimer);
+      $('startCameraBtn').disabled = false;
+      $('startCameraBtn').textContent = 'Avvia fotocamera';
+      var name = err && err.name ? err.name : 'Errore';
+      var msg = err && err.message ? err.message : String(err);
+      var extra = '';
+      if (name === 'NotAllowedError'){
+        extra = ' Permesso negato: controlla le autorizzazioni fotocamera del browser per questo sito, oppure — se stai usando l\'app dentro la chat — apri la pagina a schermo intero fuori dalla conversazione.';
+      } else if (name === 'NotFoundError' || name === 'OverconstrainedError'){
+        extra = ' Non è stata trovata una fotocamera posteriore utilizzabile su questo dispositivo.';
+      } else if (name === 'NotReadableError'){
+        extra = ' La fotocamera risulta occupata da un\'altra app: chiudila e riprova.';
+      } else if (name === 'SecurityError'){
+        extra = ' L\'accesso alla fotocamera è bloccato dalle impostazioni di sicurezza di questa pagina (probabile anteprima incorporata): prova ad aprire l\'app a schermo intero.';
+      }
+      showCameraError('<strong>' + name + '</strong>: ' + msg + extra);
+    });
+  });
+
+  function drawLiveOverlay(){
+    overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+    overlayCtx.save();
+    overlayCtx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--data') || '#0e7c86';
+    overlayCtx.lineWidth = 2;
+    overlayCtx.setLineDash([8, 6]);
+    liveCropPoints.forEach(function(p){
+      overlayCtx.beginPath();
+      overlayCtx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+      overlayCtx.fillStyle = overlayCtx.strokeStyle;
+      overlayCtx.fill();
+    });
+    if (liveCropPoints.length === 2){
+      var x = Math.min(liveCropPoints[0].x, liveCropPoints[1].x);
+      var y = Math.min(liveCropPoints[0].y, liveCropPoints[1].y);
+      var w = Math.abs(liveCropPoints[0].x - liveCropPoints[1].x);
+      var h = Math.abs(liveCropPoints[0].y - liveCropPoints[1].y);
+      overlayCtx.strokeRect(x, y, w, h);
+    }
+    overlayCtx.restore();
+  }
+
+  overlayCanvas.addEventListener('pointerdown', function(evt){
+    if (!liveStream) return;
+    var rect = overlayCanvas.getBoundingClientRect();
+    var p = {
+      x: clamp(evt.clientX - rect.left, 0, overlayCanvas.width),
+      y: clamp(evt.clientY - rect.top, 0, overlayCanvas.height)
+    };
+    if (liveCropPoints.length >= 2) liveCropPoints = [];
+    liveCropPoints.push(p);
+    drawLiveOverlay();
+  });
+
+  $('resetLiveCropBtn').addEventListener('click', function(){
+    liveCropPoints = [];
+    drawLiveOverlay();
+  });
+
+  function computeLiveCropRect(){
+    if (liveCropPoints.length !== 2 || !overlayCanvas.width) return null;
+    var scale = liveVideo.videoWidth / overlayCanvas.width;
+    var x = Math.min(liveCropPoints[0].x, liveCropPoints[1].x) * scale;
+    var y = Math.min(liveCropPoints[0].y, liveCropPoints[1].y) * scale;
+    var w = Math.abs(liveCropPoints[0].x - liveCropPoints[1].x) * scale;
+    var h = Math.abs(liveCropPoints[0].y - liveCropPoints[1].y) * scale;
+    if (w < 20 || h < 10) return null;
+    return { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) };
+  }
+
+  function requestWakeLock(){
+    if ('wakeLock' in navigator){
+      navigator.wakeLock.request('screen').then(function(lock){ wakeLockRef = lock; }).catch(function(){});
+    }
+  }
+  function releaseWakeLock(){
+    if (wakeLockRef){ try { wakeLockRef.release(); } catch(e){} wakeLockRef = null; }
+  }
+
+  function persistInProgressSession(){
+    try { localStorage.setItem(AUTO_SESSION_KEY, JSON.stringify(sessionData)); } catch(e){}
+  }
+  function clearInProgressSession(){
+    try { localStorage.removeItem(AUTO_SESSION_KEY); } catch(e){}
+  }
+
+  function buildLiveTableHead(){
+    var fields = MODE_FIELDS[sessionData ? sessionData.mode : state.mode];
+    $('liveTableHead').innerHTML = '<th>Ora</th><th>Slot</th>' + fields.map(function(f){ return '<th>' + FIELD_META[f].label + '</th>'; }).join('');
+  }
+
+  function appendLiveTableRows(ts, rows, fields, slotIds){
+    var body = $('liveTableBody');
+    for (var slot = 1; slot <= 6; slot++){
+      if (!slotIds[slot - 1]) continue;
+      var r = rows[slot];
+      var timeStr = new Date(ts).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      var cells = '<td>' + timeStr + '</td><td>' + slot + '</td>';
+      fields.forEach(function(f){
+        var v = (r && r[f] !== undefined && r[f] !== null && !isNaN(r[f])) ? r[f] : '—';
+        cells += '<td>' + v + '</td>';
+      });
+      var tr = document.createElement('tr');
+      tr.innerHTML = cells;
+      body.insertBefore(tr, body.firstChild);
+    }
+    while (body.children.length > 60) body.removeChild(body.lastChild);
+  }
+
+  function updateLiveStatusUI(){
+    var n = sessionData ? (sessionData.tickCount || 0) : 0;
+    $('liveCount').textContent = n + (n === 1 ? ' lettura' : ' letture');
+  }
+  function updateElapsedDisplay(){
+    if (!recordStartTime) return;
+    var sec = Math.floor((Date.now() - recordStartTime) / 1000);
+    var mm = String(Math.floor(sec / 60)).padStart(2, '0');
+    var ss = String(sec % 60).padStart(2, '0');
+    $('liveElapsed').textContent = mm + ':' + ss;
+  }
+
+  function recordTick(){
+    if (recordBusy || !liveStream || liveVideo.readyState < 2) return;
+    recordBusy = true;
+    var full = document.createElement('canvas');
+    full.width = liveVideo.videoWidth;
+    full.height = liveVideo.videoHeight;
+    full.getContext('2d').drawImage(liveVideo, 0, 0);
+
+    var shot = full;
+    if (liveCropRect){
+      var c = document.createElement('canvas');
+      c.width = liveCropRect.w; c.height = liveCropRect.h;
+      c.getContext('2d').drawImage(full, liveCropRect.x, liveCropRect.y, liveCropRect.w, liveCropRect.h, 0, 0, liveCropRect.w, liveCropRect.h);
+      shot = c;
+    }
+
+    var sessionMode = sessionData ? sessionData.mode : state.mode;
+    var sessionSlotIds = sessionData ? sessionData.slotIds : state.slotIds;
+    var fields = MODE_FIELDS[sessionMode];
+    getWorker()
+      .then(function(worker){ return worker.recognize(shot); })
+      .then(function(result){
+        var text = result && result.data ? result.data.text : '';
+        var rows = parseModeText(sessionMode, text || '');
+        var ts = new Date().toISOString();
+        if (sessionData){
+          for (var slot = 1; slot <= 6; slot++){
+            if (!sessionSlotIds[slot - 1]) continue;
+            var r = rows[slot];
+            if (!r) continue;
+            var sample = { t: ts, confidence: r.confidence || 'none' };
+            fields.forEach(function(f){ sample[f] = (r[f] === undefined || r[f] === null || isNaN(r[f])) ? null : r[f]; });
+            sessionData.samples[slot].push(sample);
+          }
+          sessionData.tickCount = (sessionData.tickCount || 0) + 1;
+          persistInProgressSession();
+          updateLiveStatusUI();
+        }
+        appendLiveTableRows(ts, rows, fields, sessionSlotIds);
+      })
+      .catch(function(){ /* skip this tick, keep recording */ })
+      .then(function(){ recordBusy = false; });
+  }
+
+  $('startRecordingBtn').addEventListener('click', function(){
+    liveCropRect = computeLiveCropRect();
+    var intervalSec = parseInt($('intervalSelect').value, 10) || 30;
+
+    sessionData = {
+      id: 'session_' + Date.now(),
+      startedAt: new Date().toISOString(),
+      mode: state.mode,
+      slotIds: state.slotIds.slice(0, 6),
+      tickCount: 0,
+      samples: { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] }
+    };
+    persistInProgressSession();
+
+    recordStartTime = Date.now();
+    $('liveTableBody').innerHTML = '';
+    buildLiveTableHead();
+    updateLiveStatusUI();
+    $('liveStatus').style.display = 'flex';
+    $('startRecordingRow').style.display = 'none';
+    $('resetLiveCropBtn').style.display = 'none';
+    $('intervalSelect').disabled = true;
+
+    requestWakeLock();
+    recordTick();
+    recordTimer = setInterval(recordTick, intervalSec * 1000);
+    recordElapsedTimer = setInterval(updateElapsedDisplay, 1000);
+  });
+
+  function stopRecordingInternals(){
+    if (recordTimer){ clearInterval(recordTimer); recordTimer = null; }
+    if (recordElapsedTimer){ clearInterval(recordElapsedTimer); recordElapsedTimer = null; }
+    releaseWakeLock();
+    if (liveStream){ liveStream.getTracks().forEach(function(t){ t.stop(); }); liveStream = null; }
+    $('videoWrap').style.display = 'none';
+    $('liveStatus').style.display = 'none';
+  }
+
+  $('stopRecordingBtn').addEventListener('click', function(){
+    stopRecordingInternals();
+    showSessionReview();
+  });
+
+  function showSessionReview(){
+    var parts = [];
+    if (!sessionData) return;
+    var slotIds = sessionData.slotIds || state.slotIds;
+    for (var slot = 1; slot <= 6; slot++){
+      if (!slotIds[slot - 1]) continue;
+      var n = (sessionData.samples[slot] || []).length;
+      if (n > 0) parts.push('Slot ' + slot + ' (ID ' + slotIds[slot - 1] + '): ' + n + ' campioni');
+    }
+    $('sessionReviewSummary').textContent = parts.length ? parts.join(' · ') : 'Nessun campione valido registrato: prova a ripetere con un’inquadratura migliore.';
+    $('sessionReviewCard').style.display = 'flex';
+  }
+
+  function resetAutoRecordUI(){
+    liveCropPoints = [];
+    liveCropRect = null;
+    $('startCameraBtn').disabled = false;
+    $('startCameraBtn').textContent = 'Avvia fotocamera';
+    $('intervalSelect').disabled = false;
+  }
+
+  $('discardSessionBtn').addEventListener('click', function(){
+    sessionData = null;
+    clearInProgressSession();
+    $('sessionReviewCard').style.display = 'none';
+    resetAutoRecordUI();
+  });
+
+  $('saveSessionBtn').addEventListener('click', function(){
+    if (!sessionData) return;
+    var note = $('sessionNoteInput').value.trim();
+    var docs = [];
+    var slotIds = sessionData.slotIds || state.slotIds;
+    for (var slot = 1; slot <= 6; slot++){
+      var battId = slotIds[slot - 1];
+      var samples = sessionData.samples[slot];
+      if (battId && samples && samples.length){
+        docs.push({
+          sessionId: sessionData.id,
+          mode: sessionData.mode,
+          slot: slot,
+          batteryId: battId,
+          note: note,
+          startedAt: sessionData.startedAt,
+          samples: samples
+        });
+      }
+    }
+    var toast = $('sessionToast');
+    if (!docs.length){
+      toast.textContent = 'Nessun dato da salvare.';
+      toast.className = 'toast show err';
+      return;
+    }
+    Promise.all(docs.map(addSessionDoc)).then(function(){
+      var total = docs.reduce(function(a, d){ return a + d.samples.length; }, 0);
+      toast.textContent = 'Sessione salvata: ' + docs.length + ' slot, ' + total + ' campioni totali.';
+      toast.className = 'toast show';
+      sessionData = null;
+      clearInProgressSession();
+      $('sessionNoteInput').value = '';
+      setTimeout(function(){
+        $('sessionReviewCard').style.display = 'none';
+        resetAutoRecordUI();
+      }, 1200);
+    });
+  });
+
+  function checkInProgressSession(){
+    try {
+      var raw = localStorage.getItem(AUTO_SESSION_KEY);
+      if (!raw) return;
+      var data = JSON.parse(raw);
+      if (!data || !data.samples) { localStorage.removeItem(AUTO_SESSION_KEY); return; }
+      var total = Object.keys(data.samples).reduce(function(a, k){ return a + (data.samples[k] || []).length; }, 0);
+      if (total === 0) { localStorage.removeItem(AUTO_SESSION_KEY); return; }
+      var when = fmtDate(data.startedAt);
+      if (window.confirm('È stata trovata una registrazione interrotta (' + total + ' campioni, iniziata alle ' + when + '). Vuoi recuperarla per salvarla nel registro?')){
+        sessionData = data;
+        state.mode = data.mode || state.mode;
+        state.slotIds = data.slotIds || state.slotIds;
+        buildModeGrid();
+        buildSlotGrid();
+        showTab('capture');
+        var autoTabBtn = document.querySelector('.tab[data-capture-mode="auto"]');
+        if (autoTabBtn) autoTabBtn.click();
+        showSessionReview();
+      } else {
+        localStorage.removeItem(AUTO_SESSION_KEY);
+      }
+    } catch(e){}
+  }
+
+  // ---- results table ----
+  function renderResultsTable(rows){
+    var fields = MODE_FIELDS[state.mode];
+    var headRow = $('resultsHeaderRow');
+    headRow.innerHTML = '<th>Slot</th><th>ID</th>' + fields.map(function(f){ return '<th>' + FIELD_META[f].label + '</th>'; }).join('') + '<th></th>';
+
+    var body = $('resultsBody');
+    body.innerHTML = '';
+    for (var i = 1; i <= 6; i++){
+      var row = rows[i] || {};
+      var conf = row.confidence || 'none';
+      var tr = document.createElement('tr');
+      var battId = state.slotIds[i-1] || '—';
+      var cells = '<td><span class="slot-badge"><span class="conf-dot ' + conf + '"></span>' + i + '</span></td>' +
+                  '<td>' + battId + '</td>';
+      fields.forEach(function(f){
+        var val = (row[f] === undefined || row[f] === null || isNaN(row[f])) ? '' : row[f];
+        cells += '<td><input type="number" step="' + FIELD_META[f].step + '" data-slot="' + i + '" data-field="' + f + '" value="' + val + '"></td>';
+      });
+      cells += '<td></td>';
+      tr.innerHTML = cells;
+      body.appendChild(tr);
+    }
+  }
+
+  $('saveReadingsBtn').addEventListener('click', function(){
+    var fields = MODE_FIELDS[state.mode];
+    var note = $('noteInput').value.trim();
+    var inputs = $('resultsBody').querySelectorAll('input');
+    var bySlot = {};
+    inputs.forEach(function(inp){
+      var slot = inp.dataset.slot, field = inp.dataset.field;
+      bySlot[slot] = bySlot[slot] || {};
+      bySlot[slot][field] = inp.value === '' ? null : parseFloat(inp.value);
+    });
+
+    var toSave = [];
+    Object.keys(bySlot).forEach(function(slotStr){
+      var slot = parseInt(slotStr, 10);
+      var battId = state.slotIds[slot - 1];
+      var vals = bySlot[slotStr];
+      var hasValue = fields.some(function(f){ return vals[f] !== null && vals[f] !== undefined; });
+      if (battId && hasValue){
+        var row = { mode: state.mode, slot: slot, batteryId: battId, note: note,
+          current: null, voltage: null, capacity: null, resistance: null };
+        fields.forEach(function(f){ row[f] = (vals[f] === undefined) ? null : vals[f]; });
+        toSave.push(row);
+      }
+    });
+
+    var toast = $('saveToast');
+    if (toSave.length === 0){
+      toast.textContent = 'Nessuna riga da salvare: servono un ID batteria e almeno un valore per slot.';
+      toast.className = 'toast show err';
+      return;
+    }
+
+    Promise.all(toSave.map(addReading)).then(function(){
+      toast.textContent = toSave.length + ' letture salvate nel registro.';
+      toast.className = 'toast show';
+      $('noteInput').value = '';
+    });
+  });
+
+  // ================= log panel =================
+  function refreshFilterOptions(){
+    var sel = $('filterSelect');
+    var current = sel.value;
+    var ids = Array.from(new Set(state.readings.map(function(r){ return r.batteryId; }).filter(Boolean))).sort();
+    sel.innerHTML = '<option value="">Tutte le batterie</option>' + ids.map(function(id){
+      return '<option value="' + id + '">ID ' + id + '</option>';
+    }).join('');
+    sel.value = ids.indexOf(current) >= 0 ? current : '';
+  }
+
+  function getFilteredReadings(){
+    var filter = $('filterSelect').value;
+    return getFlatRows().filter(function(r){ return !filter || r.batteryId === filter; });
+  }
+
+  function renderLog(){
+    refreshFilterOptions();
+    var body = $('logBody');
+    var rows = getFilteredReadings();
+    body.innerHTML = '';
+    $('logEmpty').style.display = rows.length ? 'none' : 'block';
+    rows.forEach(function(r){
+      var tr = document.createElement('tr');
+      var lastCell = r._session
+        ? '<span class="pill muted" style="padding:2px 7px;">serie</span>'
+        : '<button class="btn-danger" data-id="' + r.id + '" type="button">&times;</button>';
+      tr.innerHTML =
+        '<td>' + fmtDate(r.ts) + '</td>' +
+        '<td>' + r.slot + '</td>' +
+        '<td>' + r.batteryId + '</td>' +
+        '<td>' + (MODE_LABELS[r.mode] || r.mode) + '</td>' +
+        '<td>' + (r.current ?? '') + '</td>' +
+        '<td>' + (r.voltage ?? '') + '</td>' +
+        '<td>' + (r.capacity ?? '') + '</td>' +
+        '<td>' + (r.resistance ?? '') + '</td>' +
+        '<td>' + (r.note || '') + '</td>' +
+        '<td>' + lastCell + '</td>';
+      body.appendChild(tr);
+    });
+    body.querySelectorAll('.btn-danger').forEach(function(btn){
+      btn.addEventListener('click', function(){ deleteReading(btn.dataset.id); });
+    });
+    renderSessionsList();
+  }
+
+  function renderSessionsList(){
+    var sessions = state.readings.filter(function(d){ return Array.isArray(d.samples) && d.samples.length; });
+    var card = $('sessionsCard');
+    if (!sessions.length){ card.style.display = 'none'; return; }
+    card.style.display = 'flex';
+    var list = $('sessionsList');
+    list.innerHTML = '';
+    sessions.forEach(function(doc){
+      var row = document.createElement('div');
+      row.className = 'session-row';
+      var started = doc.startedAt || (doc.samples[0] && doc.samples[0].t);
+      row.innerHTML =
+        '<span>' + fmtDate(started) + ' &middot; Slot ' + doc.slot + ' &middot; ID ' + doc.batteryId +
+        ' &middot; ' + (MODE_LABELS[doc.mode] || doc.mode) + ' &middot; ' + doc.samples.length + ' campioni</span>' +
+        '<button class="btn-danger" data-id="' + doc.id + '" type="button">Elimina</button>';
+      list.appendChild(row);
+    });
+    list.querySelectorAll('.btn-danger').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        if (window.confirm('Eliminare questa sessione registrata? Cancella tutta la curva di questo slot, non si può annullare.')){
+          deleteReading(btn.dataset.id);
+        }
+      });
+    });
+  }
+
+  $('filterSelect').addEventListener('change', renderLog);
+
+  // ---- export ----
+  function csvValue(v){
+    if (v === null || v === undefined) return '';
+    var s = String(v);
+    return /[",;\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  function buildCsv(rows){
+    var header = ['Data/ora','Slot','ID batteria','Modalità','Corrente (A)','Tensione (V)','Capacità (mAh)','Resistenza interna (mΩ)','Note'];
+    var lines = [header.join(',')];
+    rows.forEach(function(r){
+      lines.push([
+        fmtDate(r.ts), r.slot, r.batteryId, (MODE_LABELS[r.mode] || r.mode),
+        r.current ?? '', r.voltage ?? '', r.capacity ?? '', r.resistance ?? '', r.note || ''
+      ].map(csvValue).join(','));
+    });
+    return lines.join('\r\n');
+  }
+
+  function buildTxt(rows){
+    return rows.map(function(r){
+      return fmtDate(r.ts) + ' | Slot ' + r.slot + ' | ID ' + r.batteryId + ' | ' + (MODE_LABELS[r.mode] || r.mode) +
+        ' | ' + (r.current ?? '-') + 'A ' + (r.voltage ?? '-') + 'V ' + (r.capacity ?? '-') + 'mAh ' + (r.resistance ?? '-') + 'mΩ' +
+        (r.note ? (' | ' + r.note) : '');
+    }).join('\n');
+  }
+
+  function showCopyFallback(content){
+    var ta = $('exportFallback');
+    ta.style.display = 'block';
+    ta.value = content;
+    $('copyRow').style.display = 'flex';
+  }
+
+  // Pagina autonoma (fuori dal contenitore di Claude): un vero download via
+  // Blob + <a download> funziona normalmente, come su qualunque sito.
+  function tryBlobDownload(filename, content, kind){
+    try {
+      var mime = kind === 'csv' ? 'text/csv' : 'text/plain';
+      var blob = new Blob([content], { type: mime + ';charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+      return true;
+    } catch(e){ return false; }
+  }
+
+  function doExport(kind){
+    var rows = getFilteredReadings();
+    var toast = $('exportToast');
+    if (!rows.length){
+      toast.textContent = 'Nessuna lettura da esportare con questo filtro.';
+      toast.className = 'toast show err';
+      return;
+    }
+    var content = kind === 'csv' ? buildCsv(rows) : buildTxt(rows);
+    var filename = 'nc2500-log-' + new Date().toISOString().slice(0,10) + '.' + kind;
+
+    if (downloadsApi){
+      downloadsApi.save({ filename: filename, data: content })
+        .then(function(){
+          toast.textContent = 'File "' + filename + '" salvato.';
+          toast.className = 'toast show';
+        })
+        .catch(function(err){
+          if (err && err.code === 'declined') return;
+          toast.textContent = 'Salvataggio diretto non disponibile: copia i dati qui sotto.';
+          toast.className = 'toast show err';
+          showCopyFallback(content);
+        });
+    } else if (tryBlobDownload(filename, content, kind)){
+      toast.textContent = 'File "' + filename + '" scaricato.';
+      toast.className = 'toast show';
+    } else {
+      toast.textContent = 'Download diretto non disponibile: copia i dati qui sotto.';
+      toast.className = 'toast show err';
+      showCopyFallback(content);
+    }
+  }
+
+  $('exportCsvBtn').addEventListener('click', function(){ doExport('csv'); });
+  $('exportTxtBtn').addEventListener('click', function(){ doExport('txt'); });
+  $('copyBtn').addEventListener('click', function(){
+    var ta = $('exportFallback');
+    ta.select();
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(ta.value).then(function(){
+        var toast = $('exportToast');
+        toast.textContent = 'Copiato negli appunti.';
+        toast.className = 'toast show';
+      }).catch(function(){});
+    } else {
+      try { document.execCommand('copy'); } catch(e){}
+    }
+  });
+
+  // ================= boot =================
+  buildModeGrid();
+  buildSlotGrid();
+  updateCaptureHint();
+  updateStatusPill();
+  initCapabilities();
+  ensureLangCached(); // warm the OCR language cache in the background
+  checkInProgressSession();
+})();
+</script>
+
+</body>
+</html>
