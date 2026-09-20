@@ -465,6 +465,31 @@
   var FREE_READING_LIMIT = 20;
   var BUY_URL = 'https://ANCORA-DA-IMPOSTARE.gumroad.com/l/PRODOTTO'; // <-- sostituisci con il link del tuo prodotto Gumroad
 
+  // Sblocco locale per debug/test: aprendo l'app con ?admin=TOKEN nell'URL,
+  // questo browser viene marcato PRO esattamente come con una licenza vera
+  // attivata — comodo per provare registrazione automatica ed export senza
+  // aspettare che Gumroad/Cloudflare Worker siano pronti. NON è una vera
+  // autenticazione (gira tutto lato client, come il resto del gate PRO):
+  // chiunque conosca il token si sblocca, quindi va trattato come una
+  // password semplice da non condividere, non come sicurezza vera. Cambia
+  // ADMIN_UNLOCK_TOKEN con una parola a tua scelta quando vuoi.
+  var ADMIN_UNLOCK_TOKEN = 'pier-admin-2026';
+
+  function checkAdminUnlock(){
+    try {
+      var params = new URLSearchParams(window.location.search);
+      var token = params.get('admin');
+      if (!token) return;
+      if (token === ADMIN_UNLOCK_TOKEN) setPro(true);
+      // Toglie il parametro dall'indirizzo dopo averlo letto, così non resta
+      // visibile per sbaglio in cronologia, screenshot o link condivisi.
+      params.delete('admin');
+      var newSearch = params.toString();
+      var newUrl = window.location.pathname + (newSearch ? '?' + newSearch : '') + window.location.hash;
+      window.history.replaceState({}, '', newUrl);
+    } catch(e){}
+  }
+
   function isPro(){
     try { return localStorage.getItem('nc2500_pro') === '1'; } catch(e){ return false; }
   }
@@ -1618,6 +1643,7 @@
   buildSlotGrid();
   updateCaptureHint();
   updateStatusPill();
+  checkAdminUnlock();
   updateProUI();
   revalidateLicenseInBackground();
   initCapabilities();
