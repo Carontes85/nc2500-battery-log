@@ -4,14 +4,14 @@ App per fotografare il display dell'NC2500 Pro e registrare automaticamente le l
 
 ## Dove si trova
 
-- **Versione Claude Artifact** (scatto singolo, la fotocamera live non funziona dentro Claude): https://claude.ai/artifact/6KiWCGc56QSRa7sPqFg5DK — non ancora aggiornata con i fix di questa sessione (vedi sezioni sotto), da ripubblicare quando si torna a lavorare su questo. Non può comunque avere la guida live all'inquadratura (vedi sotto), che richiede la fotocamera live non disponibile dentro Claude.
+- **Versione Claude Artifact** (scatto singolo, la fotocamera live non funziona dentro Claude): https://claude.ai/artifact/6KiWCGc56QSRa7sPqFg5DK — non ancora aggiornata con i fix di questa sessione (vedi sezioni sotto), da ripubblicare quando si torna a lavorare su questo. Non può comunque avere la guida live all'inquadratura né il ritaglio automatico (vedi sotto), che richiedono la fotocamera live non disponibile dentro Claude.
 - **Versione standalone per GitHub Pages** (scatto singolo + registrazione automatica della curva nel tempo, fotocamera live funzionante): pubblicata da Pier su https://carontes85.github.io/nc2500-battery-log/ (repo `Carontes85/nc2500-battery-log`, root del repo con `index.html`, `landing.html`, `lcd-ocr.js`, `frame-guide.js` — i vecchi file di Tesseract.js, non più usati, sono stati rimossi dal repo).
 
 ## Motore di lettura del display (lcd-ocr.js)
 
 Il display dell'NC2500 Pro usa un font a matrice di punti che Tesseract (OCR generico) non riesce a leggere in modo affidabile, anche con immagine pulita — è un problema di font non riconosciuto dal modello, non di luce/inquadratura (verificato empiricamente su foto reali). Sostituito con una pipeline su misura in JavaScript puro (nessuna libreria esterna, ~30KB invece degli ~8MB di Tesseract):
 
-1. L'utente tocca i 4 angoli dello schermo (foto singola o video live) — sostituisce il vecchio ritaglio a 2 punti.
+1. Ritaglio dello schermo (oggi: automatico in tempo reale in "Registrazione automatica", vedi sezione dedicata più sotto; tocco manuale dei 4 angoli come ripiego, o unico meccanismo nello scatto singolo).
 2. Correzione prospettica (raddrizza foto storte/in mano libera) via trasformazione proiettiva.
 3. **Correzione fine dell'inclinazione residua** usando l'intestazione come riferimento — un affinamento oltre alla correzione prospettica del punto 2, utile soprattutto per le viste con più righe ravvicinate.
 4. Pulizia immagine: scala di grigi, upscale 3x, autocontrasto, stima dello sfondo locale (illuminazione) tramite blur ampio, binarizzazione **adattiva** (pixel scuro rispetto al proprio sfondo locale, non rispetto a una soglia fissa uguale per tutta la foto) e "erosione" per fondere i puntini della matrice in tratti pieni.
@@ -26,7 +26,7 @@ Validato al 100% su 8 delle 9 foto reali fornite finora da Pier in singola riga 
 **Limiti noti residui**:
 - Su foto molto rumorose, righe completamente vuote (es. C6 senza alcuna lettura) possono talvolta mostrare qualche carattere spurio dopo l'etichetta per rumore/riflessi in quella zona — non compromette le letture reali, è solo un artefatto cosmetico.
 - Le cifre "6" e "8" hanno forme molto simili (Jaccard ~0.52 tra i template): dopo l'aggiunta del template "8", alcune "6" con contorni leggermente sporchi possono risultare "incerte" invece che lette con sicurezza — prezzo accettato per correggere la lettura errata "8"→"0". La cifra "7" invece è molto ben distinta da tutte le altre (similarità massima ~0.28 con "0", ben sotto la soglia di ambiguità 0.45): nessun effetto collaterale osservato o atteso per la sua aggiunta.
-- **Nella vista con più canali insieme ("Ripristino"/BREAK_IN con C1..C6 tutti elencati uno sotto l'altro), una foto scattata con angolo di ripresa marcato (telefono molto inclinato rispetto al display) può leggere bene solo le prime righe (vicine all'intestazione) e male quelle più lontane (es. C3/C4)** — confermato essere un limite della foto (angolo di ripresa), non della pipeline: con una foto dello stesso schermo presa più perpendicolare, tutti e 6 gli slot si leggono correttamente. Per questo è stata aggiunta la guida live all'inquadratura (vedi sezione dedicata sotto), che avvisa l'utente in tempo reale se l'angolo non va bene, proprio nella modalità dove questo limite si sente di più.
+- **Nella vista con più canali insieme ("Ripristino"/BREAK_IN con C1..C6 tutti elencati uno sotto l'altro), una foto scattata con angolo di ripresa marcato (telefono molto inclinato rispetto al display) può leggere bene solo le prime righe (vicine all'intestazione) e male quelle più lontane (es. C3/C4)** — confermato essere un limite della foto (angolo di ripresa), non della pipeline: con una foto dello stesso schermo presa più perpendicolare, tutti e 6 gli slot si leggono correttamente. Per questo è stata aggiunta la guida live all'inquadratura, e in seguito il ritaglio automatico come meccanismo predefinito (vedi sezioni dedicate più sotto), proprio nella modalità dove questo limite si sente di più.
 
 ## Vista "Ripristino" con più canali insieme (20/09/2026 sera)
 
@@ -69,20 +69,41 @@ Analizzando una foto scattata al buio è emerso un bug reale e indipendente dall
 
 Dopo aver confermato che il limite di lettura di C3/C4 nella vista "Ripristino" dipende dall'angolo di ripresa (vedi sopra), Pier ha chiesto se si potesse mostrare all'utente, in sovrimpressione sulla fotocamera, un'indicazione di come tenere il telefono per una foto ben leggibile.
 
-**Ambito scelto con Pier** (chiarito con due domande prima di partire): la guida è un aiuto puramente visivo, in tempo reale, mostrato **solo nella modalità "Registrazione automatica"** (l'unica che oggi ha una vista fotocamera live dentro la pagina — lo scatto singolo usa la fotocamera nativa del telefono e non può mostrare overlay). Il tocco manuale dei 4 angoli resta invariato ed è comunque necessario: la guida non lo sostituisce, è solo un riscontro in più mentre si inquadra. Feedback scelto: bordo colorato attorno allo schermo rilevato (verde/giallo/rosso, riusa le stesse variabili di colore già usate altrove nell'app) più un messaggio testuale breve.
+**Ambito scelto con Pier inizialmente** (chiarito con due domande prima di partire): la guida doveva essere solo un aiuto visivo, mostrato **solo nella modalità "Registrazione automatica"** (l'unica che oggi ha una vista fotocamera live dentro la pagina — lo scatto singolo usa la fotocamera nativa del telefono e non può mostrare overlay), mentre il tocco manuale dei 4 angoli restava l'unico meccanismo che contava davvero per il ritaglio. **Questo è cambiato la notte stessa** (vedi sezione successiva "Il ritaglio automatico diventa il meccanismo predefinito"): oggi il rettangolo rilevato da questa guida è la fonte di ritaglio effettiva in modalità automatica, non solo un consiglio.
 
 **Come funziona**: circa 2-3 volte al secondo, mentre la fotocamera è attiva, un fotogramma del video viene ridotto e analizzato per trovare il rettangolo luminoso dello schermo (molto più chiaro dello sfondo scuro del caricabatterie) tramite soglia automatica (Otsu) e ricerca della macchia connessa più grande sopra soglia. Dai 4 angoli di quel rettangolo si confronta la lunghezza dei lati opposti (sinistra/destra, alto/basso): più sono simili, più la ripresa è perpendicolare allo schermo — la stessa idea geometrica verificata confrontando le due foto reali di cui sopra (quella buona aveva un'asimmetria tra lati opposti dell'~1%, quella con C3/C4 illeggibili del ~6%; le soglie di verde/giallo/rosso sono tarate su questi due numeri). In base a quale lato risulta più "vicino" (più lungo), il messaggio suggerisce la correzione: spostare il telefono a destra/sinistra o alzarlo/abbassarlo leggermente. Se lo schermo non viene trovato con sicurezza (es. non ancora inquadrato, o riflessi troppo forti), non mostra nulla invece di indovinare.
 
-**Sicurezza**: la guida non tocca mai `liveCropPoints`/`liveCropCorners` (le variabili che contano davvero per il ritaglio usato dall'OCR) — disegna solo un riquadro aggiuntivo sullo stesso canvas, sotto ai punti toccati dall'utente, e un banner di testo. Un errore o un'eccezione nell'analisi viene ignorato silenziosamente (si salta solo quel giro): non può mai bloccare la fotocamera o la registrazione.
-
-**Testato**: 
+**Testato**:
 - Le funzioni di rilevamento/valutazione isolate, con le due foto reali di riferimento — la foto con angolo marcato dà correttamente "rosso" con il suggerimento "Alza leggermente il telefono" (coerente con l'asimmetria misurata, alto/basso più marcata della sinistra/destra), la foto perpendicolare dà "verde"/"Ottimo, tieni fermo così".
 - **End-to-end nell'app vera**, simulando una fotocamera reale in Chromium con le due foto come sorgente video (flag `--use-fake-device-for-media-stream`): navigazione fino alla scheda Registrazione automatica, avvio fotocamera, stessi risultati verdi/rossi visti nel banner effettivo della pagina.
-- Verificato che il tocco dei 4 angoli continua a funzionare esattamente come prima insieme alla guida attiva (nessuna interferenza tra i due overlay sullo stesso canvas).
 
-**Limite noto/da verificare sul campo**: la direzione del suggerimento (che lato spostare) è dedotta dalla geometria prospettica standard (il lato "vicino" appare più lungo), verificata matematicamente sulle due foto reali ma non ancora testata con un vero telefono in mano da Pier — è una prima versione ragionevole ma da confermare/affinare con l'uso reale. In ogni caso un'indicazione imprecisa sulla direzione non è pericolosa: il tocco manuale dei 4 angoli resta sempre l'unico meccanismo che conta per la lettura, quindi nel peggiore dei casi la guida è solo meno utile, non dannosa.
+**Limite noto/da verificare sul campo**: la direzione del suggerimento (che lato spostare) è dedotta dalla geometria prospettica standard (il lato "vicino" appare più lungo), verificata matematicamente sulle due foto reali ma non ancora testata con un vero telefono in mano da Pier — è una prima versione ragionevole ma da confermare/affinare con l'uso reale.
 
 Incluso nel pacchetto GitHub Pages consegnato a Pier in questa sessione (nuovo file `frame-guide.js` da aggiungere al repo insieme agli altri).
+
+## Il ritaglio automatico diventa il meccanismo predefinito (20/09/2026, notte)
+
+Pier ha riferito di fare fatica a toccare con precisione i 4 angoli sullo schermo, mentre il riquadro colorato della guida live (vedi sezione sopra) individua lo schermo meglio di quanto riesca lui a mano. Ha chiesto esplicitamente di **rimuovere il tocco manuale come meccanismo predefinito e usare il ritaglio rettangolare automatico**, tenendo il tocco manuale solo come ripiego disponibile in caso il rilevamento automatico non trovi lo schermo.
+
+**Implementato in `index-standalone.html`** (solo modalità "Registrazione automatica", l'unica con fotocamera live in pagina):
+
+- Nuovo stato `cropMode` (`'auto'` di default, `'manual'` come ripiego). All'avvio della fotocamera si parte sempre in `'auto'`.
+- In modalità `auto`, il ritaglio usato realmente dall'OCR è il rettangolo rilevato in tempo reale da `frame-guide.js` — non più solo un riquadro consigliato in sovrimpressione. Durante la "Registrazione automatica", ad ogni fotogramma catturato il rettangolo viene **ricalcolato al volo** (non più congelato alla posizione di inizio registrazione), cosa che tollera meglio piccoli spostamenti del telefono durante una registrazione lunga.
+- Il pulsante "Avvia registrazione" si abilita da solo appena il rilevamento automatico trova uno schermo plausibile — non serve più toccare nulla prima di iniziare.
+- **Ripiego manuale**: un pulsante ("Il rilevamento automatico non funziona? Tocca per selezionare gli angoli a mano") permette di passare a `manual` in ogni momento; inoltre **un semplice tocco sul video durante la modalità automatica passa da solo a manuale** (l'utente non deve prima premere il pulsante: se tocca per correggere, il sistema capisce l'intenzione). In modalità manuale si torna al comportamento di prima: 4 tocchi sugli angoli, posizione congelata per tutta la registrazione, pulsante per tornare all'automatico o "Reimposta angoli".
+- Aggiornati i testi in pagina di conseguenza: spiegazione "il ritaglio è automatico, non serve toccare nulla" mostrata di default; l'avviso sul tocco manuale compare solo quando quella modalità è attiva.
+
+**Testato end-to-end** con Chromium e fotocamera finta (le due foto reali come sorgente video, flag `--use-fake-device-for-media-stream`), sia sulle funzioni isolate che sull'app vera:
+- Senza alcun tocco, il pulsante "Avvia registrazione" si abilita da solo con il rettangolo auto-rilevato, su entrambe le foto di riferimento.
+- Un singolo tocco sul video passa correttamente e automaticamente a modalità manuale (testo del pulsante e avvisi si aggiornano di conseguenza).
+- **Registrazione completa con la foto perpendicolare (quella che si legge bene)**: avviata la registrazione senza toccare nulla, dopo un ciclo la tabella live mostra le 4 letture corrette e complete — C1:515, C2:509, C3:527, C4:537 mAh, esattamente come attese — confermando che il rettangolo auto-rilevato ad ogni fotogramma produce lo stesso ritaglio corretto usato dall'OCR con successo.
+- Verificato che passando a modalità manuale il cambio di stato/pulsanti funziona correttamente; la precisione della lettura in manuale dipende come sempre dalla precisione dei 4 tocchi (nessuna modifica alla logica di ritaglio manuale in sé, solo a come/quando viene attivata).
+
+## Esportazione foto di debug: ora copre anche gli scatti singoli (20/09/2026, notte)
+
+Pier ha segnalato di non trovare modo di esportare le foto per un'analisi successiva. Causa: il salvataggio delle foto di debug (`saveDebugPhoto()`, attivo solo in "modalità debug") veniva richiamato finora solo durante la "Registrazione automatica" (`recordTick()`), mai nel flusso di scatto singolo (`runOcr()`) — e Pier finora ha sempre usato lo scatto singolo per mandarmi le foto, quindi per lui la funzione risultava introvabile perché semplicemente non veniva mai attivata dal suo modo di usare l'app.
+
+**Fix**: aggiunta la stessa chiamata `saveDebugPhoto()` anche nel flusso di scatto singolo, con un campo `source: 'single'` per distinguerle in futuro dai fotogrammi di registrazione se servisse. Aggiornati i testi della card nella scheda "Registro" (ora "Foto di debug", non più "Foto di debug (registrazione)"; descrizione estesa per menzionare anche gli scatti singoli). Meccanismo di export (zip) e cancellazione invariati.
 
 ## Sblocco PRO locale per debug (`?admin=TOKEN`)
 
@@ -93,14 +114,14 @@ Dato che Gumroad e il Cloudflare Worker di verifica licenze non sono ancora atti
 - Per sbloccarsi basta aprire una volta `https://carontes85.github.io/nc2500-battery-log/?admin=pier-admin-2026`: da quel momento il dispositivo/browser resta PRO+debug (persiste in `localStorage`, sopravvive ai refresh).
 - **Non è vera sicurezza**: gira tutto lato client — va trattato come una password semplice da non condividere pubblicamente. Pier può cambiare il token quando vuole modificando la costante nel codice.
 
-## Modalità debug — raccolta foto durante la registrazione curva
+## Modalità debug — raccolta foto (scatti singoli e registrazione)
 
-Pier ha chiesto di poter salvare le foto scattate durante la "Registrazione curva nel tempo" per potermele poi mandare in chat e migliorare l'algoritmo di lettura — chiarito con lui che non ho un collegamento diretto al suo telefono: l'app le salva localmente e lui le esporta e me le invia manualmente. Alla domanda su quali fotogrammi salvare ha scelto **tutti i fotogrammi**.
+Pier ha chiesto di poter salvare le foto scattate (inizialmente pensato per la "Registrazione curva nel tempo", poi esteso anche allo scatto singolo — vedi sezione sopra) per potermele poi mandare in chat e migliorare l'algoritmo di lettura — chiarito con lui che non ho un collegamento diretto al suo telefono: l'app le salva localmente e lui le esporta e me le invia manualmente. Alla domanda su quali fotogrammi salvare durante la registrazione ha scelto **tutti i fotogrammi**.
 
 Implementazione in `index-standalone.html`, attiva solo in "modalità debug":
 
-- **Storage**: IndexedDB in un database dedicato `nc2500_debug_photos`. Ogni fotogramma della registrazione viene salvato come JPEG qualità 0.75, alla risoluzione della cattura video, insieme a modalità, testo OCR letto e id sessione.
-- **UI**: card "Foto di debug (registrazione)" nella scheda "Registro" (visibile solo in modalità debug), con contatore + "Esporta foto (zip)" + "Cancella foto salvate".
+- **Storage**: IndexedDB in un database dedicato `nc2500_debug_photos`. Ogni foto (scatto singolo o fotogramma di registrazione) viene salvata come JPEG qualità 0.75, alla risoluzione della cattura, insieme a modalità, testo OCR letto e id sessione.
+- **UI**: card "Foto di debug" nella scheda "Registro" (visibile solo in modalità debug), con contatore + "Esporta foto (zip)" + "Cancella foto salvate".
 - **Export**: mini generatore ZIP scritto da zero (modalità "store", senza compressione).
 - **Avvertenza per Pier**: nessun tetto automatico sullo storage — conviene esportare e cancellare periodicamente su registrazioni lunghe/frequenti.
 
@@ -112,12 +133,15 @@ Era stata aggiunta una card "Analisi AI" (solo versione standalone) che mandava 
 
 App gratis (fino a 20 letture salvate, solo scatto singolo) + PRO a pagamento una tantum (illimitato + registrazione automatica + export CSV/TXT), venduta come web app diretta, licenze via Gumroad verificate lato server con un Cloudflare Worker gratuito. Da completare quando Pier avrà creato l'account Gumroad e distribuito il Worker: aggiornare i placeholder `LICENSE_VERIFY_URL` e `BUY_URL`.
 
+## Nota sul collegamento GitHub (20/09/2026, notte)
+
+Pier ha chiesto se, avendo collegato il proprio account GitHub a Claude, fosse possibile aggiornare direttamente i file sul suo repository da questa sessione. Verificato che questa sessione Cowork non ha né un connettore GitHub attivo né un collegamento al suo computer (device bridge): non esiste oggi un meccanismo per fare push diretto al repo da qui. Il flusso resta: consegna dello zip aggiornato in chat, Pier lo carica manualmente su GitHub Pages (o un collegamento futuro, se configurato, potrebbe automatizzare questo passaggio).
+
 ## Prossimi passi
 
-- **Verificare sul campo la guida live all'inquadratura** appena consegnata: soprattutto se le indicazioni di direzione ("sposta a sinistra/destra", "alza/abbassa") corrispondono a quello che Pier si aspetta tenendo davvero il telefono in mano — affinare le soglie o i messaggi se serve.
-- **Migliorare la selezione dei 4 angoli nella cattura**: zoom sulla foto prima/durante il tocco degli angoli, eventualmente un meccanismo più guidato (trascinare un rettangolo/tendina invece di 4 tocchi indipendenti) — richiesto da Pier. Non ancora implementato: da chiarire con Pier il meccanismo di interazione preciso. Potrebbe in futuro anche appoggiarsi alla stessa rilevazione automatica dello schermo di `frame-guide.js` per pre-suggerire i 4 angoli, invece di limitarsi a un consiglio testuale.
-- Valutare se estendere la guida live anche allo scatto singolo, passando dalla fotocamera nativa del telefono a una vista fotocamera dentro la pagina (cambiamento più grande, per ora scartato da Pier a favore di partire con la sola Registrazione automatica).
+- **Verificare sul campo il ritaglio automatico** appena introdotto: soprattutto con un vero telefono in mano, confermare che il rettangolo si aggancia bene allo schermo del charger in condizioni reali (luce, riflessi, leggero movimento) e che il passaggio automatico a "manuale" al primo tocco risulti intuitivo. Affinare soglie/messaggi se serve.
+- Valutare se estendere ritaglio automatico e guida live anche allo scatto singolo, passando dalla fotocamera nativa del telefono a una vista fotocamera dentro la pagina (cambiamento più grande, per ora scartato da Pier a favore di partire con la sola Registrazione automatica).
 - Testare la modalità IR (resistenza interna): layout dei campi non ancora confermato con una foto reale.
 - Una volta che Pier ha Gumroad + Cloudflare Worker attivi, aggiornare i placeholder di licenza (a quel punto lo sblocco `?admin=` diventa superfluo per l'uso normale).
-- Tenere d'occhio lo spazio occupato dalle foto di debug su registrazioni lunghe (nessun limite/rotazione automatica implementato finora).
-- Ripubblicare l'Artifact Claude con i fix di questa sessione (rimasto indietro rispetto al pacchetto GitHub Pages) — la guida live all'inquadratura non è comunque riproducibile lì (niente fotocamera live dentro Claude).
+- Tenere d'occhio lo spazio occupato dalle foto di debug su registrazioni lunghe/scatti frequenti (nessun limite/rotazione automatica implementato finora).
+- Ripubblicare l'Artifact Claude con i fix di questa sessione (rimasto indietro rispetto al pacchetto GitHub Pages) — guida live e ritaglio automatico non sono comunque riproducibili lì (niente fotocamera live dentro Claude).
