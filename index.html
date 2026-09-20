@@ -168,6 +168,15 @@
   .video-wrap video{ width:100%; display:block; }
   .video-wrap canvas{ position:absolute; inset:0; width:100%; height:100%; touch-action:none; }
 
+  /* Guida live all'inquadratura (frame-guide.js): banner semi-trasparente
+     sovrapposto in basso al video, colorato secondo il semaforo good/warn/
+     bad restituito da FrameGuide.analyzeFrame(). Puramente informativo: non
+     interferisce mai col tocco dei 4 angoli, disegnato sullo stesso canvas. */
+  .framing-hint{ position:absolute; left:8px; right:8px; bottom:8px; padding:8px 12px; border-radius:8px; font-size:.82rem; font-weight:600; text-align:center; pointer-events:none; }
+  .framing-hint.good{ background:var(--good-bg); color:var(--good); }
+  .framing-hint.warn{ background:var(--warn-bg); color:var(--warn); }
+  .framing-hint.bad{ background:var(--critical-bg); color:var(--critical); }
+
   .live-status{ display:flex; flex-direction:column; gap:10px; }
   .live-status-row{ display:flex; align-items:center; gap:10px; font-family:var(--font-mono); font-size:.8rem; }
   .live-elapsed{ font-weight:600; }
@@ -289,8 +298,10 @@
         <div class="video-wrap" id="videoWrap" style="display:none;">
           <video id="liveVideo" playsinline muted autoplay></video>
           <canvas id="overlayCanvas"></canvas>
+          <div class="framing-hint" id="framingHint" style="display:none;"></div>
         </div>
         <p class="crop-hint" id="liveCropHint" style="display:none;">Tocca i 4 angoli dello schermo del display (in qualsiasi ordine): servono per raddrizzare la prospettiva. Restano validi per tutta la registrazione.</p>
+        <p class="crop-hint" id="framingGuideExplainer" style="display:none;">Il riquadro colorato e il messaggio sopra il video sono solo un aiuto per capire se il telefono è ben allineato allo schermo — non sostituiscono il tocco dei 4 angoli qui sotto, che resta comunque necessario.</p>
 
         <div class="btn-row">
           <button class="btn-primary" id="startCameraBtn" type="button">Avvia fotocamera</button>
@@ -415,6 +426,7 @@
 </div>
 
 <script src="lcd-ocr.js"></script>
+<script src="frame-guide.js"></script>
 <script>
 (function(){
   'use strict';
@@ -1107,11 +1119,13 @@
       $('videoWrap').style.display = 'block';
       liveVideo.onloadedmetadata = function(){ overlayResize(); };
       $('liveCropHint').style.display = 'block';
+      $('framingGuideExplainer').style.display = 'block';
       $('resetLiveCropBtn').style.display = 'inline-block';
       $('startRecordingRow').style.display = 'flex';
       $('startCameraBtn').disabled = true;
       $('startCameraBtn').textContent = 'Fotocamera attiva';
       hideCameraError();
+      startFramingGuide();
     }).catch(function(err){
       settled = true;
       window.clearTimeout(stallTimer);
@@ -1133,8 +1147,76 @@
     });
   });
 
+  // ---- guida live all'inquadratura (frame-guide.js) ----
+  // Puramente informativa: analizza periodicamente il fotogramma corrente
+  // per stimare quanto lo schermo del display sia inquadrato di fronte
+  // (vedi frame-guide.js per il perché). Non tocca mai liveCropPoints né
+  // liveCropCorners, che restano l'unico meccanismo che conta davvero per
+  // il ritaglio usato dall'OCR — qui si limita a disegnare un riquadro in
+  // più e un messaggio, e a non disegnare nulla se non è abbastanza sicura.
+  var framingGuideTimer = null;
+  var lastFramingResult = null;
+
+  function startFramingGuide(){
+    if (framingGuideTimer) return;
+    framingGuideTimer = window.setInterval(runFramingGuide, 400);
+  }
+  function stopFramingGuide(){
+    if (framingGuideTimer){ window.clearInterval(framingGuideTimer); framingGuideTimer = null; }
+    lastFramingResult = null;
+    var hint = $('framingHint');
+    hint.style.display = 'none';
+    hint.className = 'framing-hint';
+  }
+  function runFramingGuide(){
+    if (!liveStream || liveVideo.readyState < 2) return;
+    try {
+      lastFramingResult = FrameGuide.analyzeFrame(liveVideo, { targetW: 200 });
+    } catch (e){
+      // La guida è solo un aiuto: un errore qui non deve mai bloccare la
+      // fotocamera o la registrazione, si salta semplicemente questo giro.
+      lastFramingResult = null;
+    }
+    var hint = $('framingHint');
+    if (lastFramingResult && lastFramingResult.message){
+      hint.textContent = lastFramingResult.message;
+      hint.className = 'framing-hint ' + lastFramingResult.status;
+      hint.style.display = 'block';
+    } else {
+      hint.style.display = 'none';
+      hint.className = 'framing-hint';
+    }
+    drawLiveOverlay();
+  }
+  function framingStatusColor(status){
+    var varName = status === 'good' ? '--good' : (status === 'bad' ? '--critical' : '--warn');
+    return getComputedStyle(document.documentElement).getPropertyValue(varName) || '#a8710b';
+  }
+
   function drawLiveOverlay(){
     overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+    // Riquadro della guida automatica, disegnato per primo così i punti
+    // toccati dall'utente restano sempre ben visibili sopra.
+    if (lastFramingResult && lastFramingResult.corners && overlayCanvas.width && lastFramingResult.frameWidth){
+      var fw = lastFramingResult.frameWidth, fh = lastFramingResult.frameHeight;
+      var sx = overlayCanvas.width / fw, sy = overlayCanvas.height / fh;
+      var order = ['tl', 'tr', 'br', 'bl'];
+      overlayCtx.save();
+      overlayCtx.strokeStyle = framingStatusColor(lastFramingResult.status);
+      overlayCtx.lineWidth = 3;
+      overlayCtx.setLineDash([]);
+      overlayCtx.beginPath();
+      order.forEach(function(key, i){
+        var p = lastFramingResult.corners[key];
+        var x = p.x * sx, y = p.y * sy;
+        if (i === 0) overlayCtx.moveTo(x, y); else overlayCtx.lineTo(x, y);
+      });
+      overlayCtx.closePath();
+      overlayCtx.stroke();
+      overlayCtx.restore();
+    }
+
     overlayCtx.save();
     overlayCtx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--data') || '#0e7c86';
     overlayCtx.lineWidth = 2;
@@ -1309,10 +1391,12 @@
   function stopRecordingInternals(){
     if (recordTimer){ clearInterval(recordTimer); recordTimer = null; }
     if (recordElapsedTimer){ clearInterval(recordElapsedTimer); recordElapsedTimer = null; }
+    stopFramingGuide();
     releaseWakeLock();
     if (liveStream){ liveStream.getTracks().forEach(function(t){ t.stop(); }); liveStream = null; }
     $('videoWrap').style.display = 'none';
     $('liveStatus').style.display = 'none';
+    $('framingGuideExplainer').style.display = 'none';
   }
 
   $('stopRecordingBtn').addEventListener('click', function(){

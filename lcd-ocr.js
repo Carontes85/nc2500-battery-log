@@ -27,7 +27,7 @@
   // Generati da foto reali del display (vedi progetto: estrazione con
   // template-matching, validata al 100% su 218 caratteri di test).
   var TEMPLATE_W = 24, TEMPLATE_H = 34;
-  var RAW_TEMPLATES = [["." ,"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAf8AAf8AAf8AAf8AAf8AAf8AAf8AAf8AAf8AAO4AAAAA",24],["0","Af2AB//AB//gB//gB//gf//+fAB+fAA+fAB+fAP+fAP+fAf+fAf+fAf+fD/+fHx+fHx+fHx+f/w+f8A+f8B+f8B+f8A+foA+fAB+fAB+fAB+f//+B//gB//gB//gB//AAAAAAAAA",28],["1","AAAAAHwAAHwAAHwAAHwAAfwAB/wAB/wAB/wAB/wAA/wAAHwAAHwAAHwAAHwAAHwAAHwAAHwAAHwAAHwAAHwAAHwAAHwAAHwAAHwAAHwAA/+AB//AB//AB//AB//AAbuAAAAA",15],["2","AAAAAAAAA//AB//gB//gB//gP//4fAB+fAA+fAA+fAA+OAA+AAA+AAB+AAB8AAP8AAfgAAfgAAfAAAfAAH4AAHwAAHwAAHwAB/wAB8AAB8AAB8AAP//8f//+f//+f//+f//+AAAA",11],["3","A4AAf//+f//+f//+f//+f//+AAfwAAfgAAfgAAfAAH/AAH4AAH4AAH4AAH/AAB/gAAfgAAfgAAfgAAP+AAB+AAA+AAA+eAA+fAA+fAB+fAB+fAB+f//8B//gB//gB//gB//AA7+A",11],["4","AAAAAAAAAAPAAAfAAAfAAAfAAD/AAH/AAH/AAH/AA//AB+fAB8fAB8fAB8fAfAfAfAfAfAfAfAfAf//8f//8f//8f//8f//8AAfgAAfAAAfAAAfAAAfAAAfAAAfAAAfAAAPAAAAA",15],["5","f//+/////////////////////AAA/AAA/AAAfAAA///g///w///g///g///+AAA/AAA/AAA/AAA/AAA/AAA/AAA/AAA/AAA//AA//AA//AA//AA////+B//gB//gD//gB//gB//g",3],["6","AD/AAH/gAH/gAH/gAH/gB//AB8AAB8AAB8AAD8AA/wAA/AAA/AAA+AAA///A///g///g///g///g///++AA++AA++AA++AA++AA++AA++AA++AA+///+D//gD//gB//gB//AB//A",3],["9","AAAAB//gB//gB//gB//gf//8fAA+fAA+fAA+fAA+fAA+fAB+fAA+fAB+f//+B//+B//+B//+B//+AAB+AAB+AAA+AAB+AAP8AAfgAAfgAAfgB//AB/wAB/wAB/wAB/wAAAAAAAAA",12],[":","AAAAAAAAAAAAAAAAAAAAAf8AAf+AAf+AAf+AAf+AAf+AAf+AAf+AAf+AAP8AAAAAAAAAAAAAAP8AAf8AAf+AAf+AAf+AAf+AAf+AAf+AAf+AAf+AAP8AAAAAAAAAAAAAAAAAAAAA",18],["A","AAAAA//AB//gB//gB//gP//8fgB+fAB+fAA+fAA+fAA+fAA+fAA+fAA+fAA+fAA+fAA+fAA+fAB+f//+f//+f//+f//+f//+f/n+fAA+fAB+fAA+fAA+fAA+fAA+fAA+fAA+OAA8",24],["C","B//AB//gB//gB//gD//gf//+/AA+/AA+/AA+/AA+/AAA/AAA/AAA/AAA/AAA/AAA/AAA/AAA/AAA/AAA/AAA/AAA/AA8/AA+/AA+/AA+/AB+///+f//8B//gB//gB//gB//AAAAA",18],["V","AAAAGAAAfAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+f4P+B8fgB8fgB8fgB8fgA//AAHwAAHwAAHwAAHwAAAAA",12],["h","AAAAAAAAAAAAfAAAfAAAfAAAfAAAfAAAfAAAfAAAfAAAfD/AfH/gfH/gfH/gfn/gf/v+f8A+f8B+f8B+f8A+fAA+fAA+fAB+fAA+fAA+fAA+fAA+fAA+fAA+fAA+fAA+fAA+fAA8",12],["m","AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP8Pgf8fgf+fgf+fgf//8fH5+fH5+fH5+fHx+fHx+fHx+fHx+fHx+fDx+fAB+fAB+fAB+fAA+fAA+fAB+fAB+fAA+OAA8",12],["8","A//AA//AA//AA//AA/+APAA8PAB8PAB8PAA8PAA8PAA8PAA8PAA8PAA8A//AA//AA//AA//AA/+APAA8PAA8PAA8PAA8PAA8PgA8PgA8PgA8PAA8Gf/YA//AA//AA//AA//AAAAA",1]];
+  var RAW_TEMPLATES = [["." ,"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAf8AAf8AAf8AAf8AAf8AAf8AAf8AAf8AAf8AAO4AAAAA",24],["0","Af2AB//AB//gB//gB//gf//+fAB+fAA+fAB+fAP+fAP+fAf+fAf+fAf+fD/+fHx+fHx+fHx+f/w+f8A+f8B+f8B+f8A+foA+fAB+fAB+fAB+f//+B//gB//gB//gB//AAAAAAAAA",28],["1","AAAAAHwAAHwAAHwAAHwAAfwAB/wAB/wAB/wAB/wAA/wAAHwAAHwAAHwAAHwAAHwAAHwAAHwAAHwAAHwAAHwAAHwAAHwAAHwAAHwAAHwAA/+AB//AB//AB//AB//AAbuAAAAA",15],["2","AAAAAAAAA//AB//gB//gB//gP//4fAB+fAA+fAA+fAA+OAA+AAA+AAB+AAB8AAP8AAfgAAfgAAfAAAfAAH4AAHwAAHwAAHwAB/wAB8AAB8AAB8AAP//8f//+f//+f//+f//+AAAA",11],["3","A4AAf//+f//+f//+f//+f//+AAfwAAfgAAfgAAfAAH/AAH4AAH4AAH4AAH/AAB/gAAfgAAfgAAfgAAP+AAB+AAA+AAA+eAA+fAA+fAB+fAB+fAB+f//8B//gB//gB//gB//AA7+A",11],["4","AAAAAAAAAAPAAAfAAAfAAAfAAD/AAH/AAH/AAH/AA//AB+fAB8fAB8fAB8fAfAfAfAfAfAfAfAfAf//8f//8f//8f//8f//8AAfgAAfAAAfAAAfAAAfAAAfAAAfAAAfAAAPAAAAA",15],["5","f//+/////////////////////AAA/AAA/AAAfAAA///g///w///g///g///+AAA/AAA/AAA/AAA/AAA/AAA/AAA/AAA/AAA//AA//AA//AA//AA////+B//gB//gD//gB//gB//g",3],["6","AD/AAH/gAH/gAH/gAH/gB//AB8AAB8AAB8AAD8AA/wAA/AAA/AAA+AAA///A///g///g///g///g///++AA++AA++AA++AA++AA++AA++AA++AA+///+D//gD//gB//gB//AB//A",3],["9","AAAAB//gB//gB//gB//gf//8fAA+fAA+fAA+fAA+fAA+fAB+fAA+fAB+f//+B//+B//+B//+B//+AAB+AAB+AAA+AAB+AAP8AAfgAAfgAAfgB//AB/wAB/wAB/wAB/wAAAAAAAAA",12],[":","AAAAAAAAAAAAAAAAAAAAAf8AAf+AAf+AAf+AAf+AAf+AAf+AAf+AAf+AAP8AAAAAAAAAAAAAAP8AAf8AAf+AAf+AAf+AAf+AAf+AAf+AAf+AAf+AAP8AAAAAAAAAAAAAAAAAAAAA",18],["A","AAAAA//AB//gB//gB//gP//8fgB+fAB+fAA+fAA+fAA+fAA+fAA+fAA+fAA+fAA+fAA+fAA+fAB+f//+f//+f//+f//+f//+f/n+fAA+fAB+fAA+fAA+fAA+fAA+fAA+fAA+OAA8",24],["C","B//AB//gB//gB//gD//gf//+/AA+/AA+/AA+/AA+/AAA/AAA/AAA/AAA/AAA/AAA/AAA/AAA/AAA/AAA/AAA/AAA/AA8/AA+/AA+/AA+/AB+///+f//8B//gB//gB//gB//AAAAA",18],["V","AAAAGAAAfAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+fAB+f4P+B8fgB8fgB8fgB8fgA//AAHwAAHwAAHwAAHwAAAAA",12],["h","AAAAAAAAAAAAfAAAfAAAfAAAfAAAfAAAfAAAfAAAfAAAfD/AfH/gfH/gfH/gfn/gf/v+f8A+f8B+f8B+f8A+fAA+fAA+fAB+fAA+fAA+fAA+fAA+fAA+fAA+fAA+fAA+fAA+fAA8",12],["m","AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP8Pgf8fgf+fgf+fgf//8fH5+fH5+fH5+fHx+fHx+fHx+fHx+fHx+fDx+fAB+fAB+fAB+fAA+fAA+fAB+fAB+fAA+OAA8",12],["8","A//AA//AA//AA//AA/+APAA8PAB8PAB8PAA8PAA8PAA8PAA8PAA8PAA8A//AA//AA//AA//AA/+APAA8PAA8PAA8PAA8PAA8PgA8PgA8PgA8PAA8Gf/YA//AA//AA//AA//AAAAA",1],["7","AAP8P//8P//8P//8P//8AAA8AAA8AAA8AAA8AAPAAAPAAAPAAAPAADwAADwAADwAADwAAHwAA8AAA8AAA8AAA8AAA8AAA8AAA8AAA8AAA8AAA8AAA8AAA8AAAEAAAAAAAAAAAAAA",1]];
   // NOTA: le stringhe sopra sono placeholder rigenerati con il pacchettatore
   // JS (vedi pack_templates.js) — bit-compatibili con l'unpacker qui sotto.
 
@@ -443,7 +443,8 @@
     // Scarta bande larghe pochi pixel: rumore (bordo della cornice LCD,
     // antialiasing) mai abbastanza alto da essere una riga di testo reale.
     bands = bands.filter(function (b) { return (b[1] - b[0]) >= 30; });
-    return splitOutlierBands(bands, sums);
+    bands = splitOutlierBands(bands, sums);
+    return bands;
   }
 
   function colBands(ink, y0, y1) {
@@ -568,21 +569,109 @@
 
   var BOARD_W = 1000, BOARD_H = 560, SCALE = 3, GAP_SPACE_THRESH = 90;
 
+  // Viste con più righe ravvicinate (es. "Ripristino" del caricabatterie,
+  // che elenca C1..C6 tutti insieme) sono molto sensibili a un residuo di
+  // rotazione/prospettiva mai perfettamente corretto dai 4 angoli toccati a
+  // mano — anche pochi punti di inclinazione bastano a far "toccare"
+  // verticalmente righe adiacenti, disallineando la lettura. L'intestazione
+  // (la barra scura con "BREAK_IN"/orario) è però un rettangolo pulito e
+  // molto più facile da individuare con precisione di una singola riga di
+  // testo: la si usa come riferimento, misurando quanto la sua parte più
+  // scura si sposta in verticale scorrendo da sinistra a destra, e si
+  // raddrizza l'intera immagine di quella stessa quantità prima di
+  // proseguire — la stessa idea di usare un elemento noto come riferimento
+  // per raddrizzare E dedurre la spaziatura delle righe sotto, suggerita da
+  // Pier il 20/09/2026. Per una foto già ben inquadrata (angoli precisi,
+  // inclinazione ~0) questo non cambia nulla: i controlli di sicurezza
+  // sotto fanno sì che una misura incerta o assente lasci l'immagine così
+  // com'era.
+  function estimateHeaderTilt(grayImg) {
+    var w = grayImg.width, h = grayImg.height, data = grayImg.data;
+    // L'intestazione sta sempre vicino alla cima (foto inquadrata dai 4
+    // angoli dello schermo): si cerca lì, ma non a partire da y=0 — il
+    // primissimo bordo può includere un filo di sfondo/cornice fuori dal
+    // display se gli angoli toccati sconfinano di poco, molto più scuro
+    // persino dell'intestazione e quindi fuorviante.
+    var searchY0 = Math.round(h * 0.08);
+    var searchY1 = Math.min(h, Math.round(h * 0.30));
+    var margin = Math.floor(w * 0.05);
+    var nSamples = 9;
+    var pts = [];
+    for (var i = 0; i < nSamples; i++) {
+      var xc = Math.round(margin + (w - 2 * margin) * (i + 0.5) / nSamples);
+      var halfWin = Math.max(10, Math.floor(w * 0.03));
+      var x0 = Math.max(0, xc - halfWin), x1 = Math.min(w, xc + halfWin);
+      var bestY = -1, bestV = Infinity;
+      for (var y = searchY0; y < searchY1; y++) {
+        var s = 0, c = 0;
+        for (var x = x0; x < x1; x++) { s += data[y * w + x]; c++; }
+        var mean = s / c;
+        if (mean < bestV) { bestV = mean; bestY = y; }
+      }
+      pts.push([xc, bestY, bestV]);
+    }
+    // L'intestazione è nettamente più scura in media (blocco invertito) del
+    // semplice sfondo bianco: se la maggior parte dei campioni non trova
+    // nulla di così scuro, probabilmente non c'è un'intestazione di questo
+    // tipo in questa vista (es. crop diverso) — meglio non correggere che
+    // correggere sulla base di rumore.
+    var darkEnough = pts.filter(function (p) { return p[2] < 190; });
+    if (darkEnough.length < nSamples * 0.7) return 0;
+    var n = pts.length, sx = 0, sy = 0, sxx = 0, sxy = 0;
+    pts.forEach(function (p) { sx += p[0]; sy += p[1]; sxx += p[0] * p[0]; sxy += p[0] * p[1]; });
+    var denom = (n * sxx - sx * sx);
+    if (Math.abs(denom) < 1e-6) return 0;
+    var slope = (n * sxy - sx * sy) / denom;
+    var intercept = (sy - slope * sx) / n;
+    // La stima è affidabile solo se i punti stanno bene allineati su una
+    // retta: un'intestazione vera ha un bordo dritto, del rumore sparso no.
+    var maxResidual = 0;
+    pts.forEach(function (p) {
+      var pred = slope * p[0] + intercept;
+      maxResidual = Math.max(maxResidual, Math.abs(pred - p[1]));
+    });
+    if (maxResidual > 60) return 0;
+    if (Math.abs(slope) > 0.25) return 0; // inclinazione implausibile: probabile misura errata
+    return slope;
+  }
+  // Ricampiona ogni colonna spostandola in verticale in base all'inclinazione
+  // misurata sopra, ruotando attorno alla colonna centrale (minimizza quanto
+  // contenuto rischia di uscire dal bordo alto/basso rispetto a ruotare da
+  // un'estremità).
+  function deskewShear(grayImg, slope) {
+    if (!slope) return grayImg;
+    var w = grayImg.width, h = grayImg.height, data = grayImg.data;
+    var cx = w / 2;
+    var out = new Float32Array(w * h);
+    for (var x = 0; x < w; x++) {
+      var shift = Math.round(slope * (x - cx));
+      for (var y = 0; y < h; y++) {
+        var srcY = y + shift;
+        out[y * w + x] = (srcY >= 0 && srcY < h) ? data[srcY * w + x] : 255;
+      }
+    }
+    return { data: out, width: w, height: h };
+  }
+
   function recognizeBoard(sourceCanvas, corners) {
     var warped = warpToGray(sourceCanvas, corners, BOARD_W, BOARD_H);
     var up = upscaleGray(warped, SCALE);
-    var ac = autocontrast(up, 1);
+    var ac0 = autocontrast(up, 1);
+    var ac = deskewShear(ac0, estimateHeaderTilt(ac0));
     var bg = localBackground(ac, 24);
     var denoised = maxFilter2D(ac, 3);
     var eroded = minFilter2D(minFilter2D(denoised, 5), 3);
     var ink = adaptiveThreshold(eroded, bg, 40);
 
     var bands = rowBands(ink);
-    var rows = [];
-    for (var ri = 0; ri < bands.length; ri++) {
-      var y0 = bands[ri][0], y1 = bands[ri][1];
+    // Classifica il contenuto di una banda [y0,y1) in parole/caratteri.
+    // Estratta in funzione a sé perché serve due volte: una prima passata
+    // su tutte le bande così come trovate, e una seconda passata mirata
+    // solo sulle righe che il raffinamento a passo costante (più sotto)
+    // ricolloca a un'altezza diversa.
+    function buildRow(y0, y1) {
       var cbands = colBands(ink, y0, y1);
-      if (!cbands.length) { rows.push({ bandIndex: ri, words: [] }); continue; }
+      if (!cbands.length) return { words: [] };
       var wordGroups = groupWords(cbands, GAP_SPACE_THRESH);
       var words = wordGroups.map(function (wg) {
         var chars = wg.map(function (cb) {
@@ -593,8 +682,13 @@
         var text = chars.map(function (c) { return c.uncertain ? '?' : c.ch; }).join('');
         return { chars: chars, text: text };
       });
-      rows.push({ bandIndex: ri, words: words });
+      return { words: words };
     }
+    var rows = bands.map(function (b, ri) {
+      var row = buildRow(b[0], b[1]);
+      row.bandIndex = ri;
+      return row;
+    });
 
     // Ricostruisci il testo per riga, forzando il numero di slot (C1..C6)
     // in base alla posizione della riga (nota e fissa), non al carattere
@@ -602,18 +696,113 @@
     //
     // La riga 0 (intestazione) si salta sempre. Ma un riflesso/bagliore
     // proprio a cavallo tra intestazione e C1 può spezzare l'intestazione
-    // in più bande spurie (nessun carattere riconosciuto con fiducia in
-    // nessuna di esse): in quel caso saltarne solo una non basta e tutte le
-    // righe successive scivolerebbero di slot. Qui si salta la prima banda
-    // per posizione, poi anche ogni banda successiva ancora priva di un
-    // solo carattere riconosciuto con fiducia, prima di iniziare a contare
-    // gli slot da C1 — un vero valore letto ha sempre almeno un carattere
-    // leggibile, un residuo di rumore no.
+    // in più bande spurie: in quel caso saltarne solo una non basta e tutte
+    // le righe successive scivolerebbero di slot. In più, l'intestazione
+    // include spesso un orario ("27:08:17") con cifre vere e proprie
+    // (2,0,8,1...) lette con piena fiducia — quindi "contiene un carattere
+    // leggibile" da solo NON basta più a distinguerla da una riga di
+    // lettura vera, in viste con più canali dove l'intestazione arriva a
+    // spezzarsi abbastanza da isolare quell'orario in una banda a sé.
+    // Ogni riga di lettura vera comincia però sempre con l'etichetta
+    // "C1:".."C6:" — qui si salta ogni banda finché non se ne trova una il
+    // cui primo carattere è riconosciuto con fiducia proprio come "C".
+    function looksLikeSlotRow(row) {
+      if (!row.words.length) return false;
+      var chars = row.words[0].chars;
+      if (!chars.length) return false;
+      return !chars[0].uncertain && chars[0].ch === 'C';
+    }
+    // Ripiego per foto molto scure/sfocate dove anche la "C" iniziale non
+    // viene letta con fiducia: meglio il criterio più permissivo di prima
+    // (un carattere qualunque leggibile) che nessuna lettura.
     function hasConfidentText(row) {
       return row.words.some(function (w) { return /[^?]/.test(w.text); });
     }
     var startIdx = 1;
-    while (startIdx < rows.length && !hasConfidentText(rows[startIdx])) startIdx++;
+    while (startIdx < rows.length && !looksLikeSlotRow(rows[startIdx])) startIdx++;
+    if (startIdx >= rows.length) {
+      startIdx = 1;
+      while (startIdx < rows.length && !hasConfidentText(rows[startIdx])) startIdx++;
+    }
+
+    // Raffinamento a passo di riga costante (idea di Pier): sul display il
+    // passo verticale tra C1..C6 è fisso, quindi le righe lette con
+    // sicurezza (quelle il cui primo carattere è una "C" con fiducia)
+    // servono da riferimento per calcolare dove dovrebbero trovarsi ESATTAMENTE
+    // le righe incerte, invece di fidarsi del confine trovato localmente da
+    // rowBands — che su righe che si toccano (o quasi) può cadere dentro un
+    // carattere invece che nello spazio vuoto tra due righe, producendo
+    // lettura sporca su entrambi i lati del taglio.
+    //
+    // Si usa un fit lineare (minimi quadrati) y0(slot) = intercetta + passo*slot
+    // sulle sole righe di riferimento, poi si ricalcolano le bande di TUTTE
+    // le righe non di riferimento in quella finestra di 6 slot con quella
+    // formula, mantenendo l'altezza tipica delle righe di riferimento. Le
+    // righe già lette con sicurezza non vengono mai toccate: nel peggiore dei
+    // casi (fit poco affidabile, foto anomala) le guardie sotto fanno sì che
+    // il raffinamento non si applichi affatto, tornando al comportamento
+    // originale.
+    // Una riga "affidabile" non basta che inizi con una "C" letta bene: la
+    // sola etichetta ("C3:", "C4:") è una forma grande e semplice, quasi
+    // sempre riconosciuta anche quando il resto della riga (i valori dopo)
+    // è sporco per il contatto con la riga adiacente. Serve guardare la
+    // riga per intero: se una frazione consistente dei suoi caratteri è
+    // incerta, quella riga NON va usata come riferimento — ed è proprio
+    // una candidata a essere corretta dal raffinamento.
+    function isReliableRow(row) {
+      if (!looksLikeSlotRow(row)) return false;
+      var total = 0, uncertain = 0;
+      row.words.forEach(function (w) {
+        w.chars.forEach(function (c) { total++; if (c.uncertain) uncertain++; });
+      });
+      if (total === 0) return false;
+      return (uncertain / total) < 0.2;
+    }
+    (function refineRowBandsByPitch() {
+      var anchors = []; // { slot, y0, y1 }
+      for (var s = 1, ix = startIdx; s <= 6 && ix < rows.length; s++, ix++) {
+        if (isReliableRow(rows[ix])) {
+          anchors.push({ slot: s, idx: ix, y0: bands[ix][0], y1: bands[ix][1] });
+        }
+      }
+      // Servono almeno 2 righe di riferimento per un fit lineare, e ce ne
+      // deve essere almeno una da correggere: altrimenti non c'è nulla da
+      // fare (o nulla su cui basarsi).
+      if (anchors.length < 2 || anchors.length >= Math.min(6, rows.length - startIdx)) return;
+
+      var n = anchors.length, sumX = 0, sumY = 0;
+      anchors.forEach(function (a) { sumX += a.slot; sumY += a.y0; });
+      var meanX = sumX / n, meanY = sumY / n;
+      var num = 0, den = 0;
+      anchors.forEach(function (a) {
+        num += (a.slot - meanX) * (a.y0 - meanY);
+        den += (a.slot - meanX) * (a.slot - meanX);
+      });
+      if (den === 0) return;
+      var pitch = num / den;
+      // Il passo deve essere positivo e di un ordine di grandezza plausibile
+      // per una riga di testo a questa scala (upscale ×3): una foto anomala
+      // o riferimenti fuorvianti non devono produrre spostamenti assurdi.
+      if (!(pitch > 60 && pitch < 500)) return;
+
+      var heights = anchors.map(function (a) { return a.y1 - a.y0; }).sort(function (a, b) { return a - b; });
+      var medHeight = heights[Math.floor(heights.length / 2)];
+
+      for (var s2 = 1, ix2 = startIdx; s2 <= 6 && ix2 < rows.length; s2++, ix2++) {
+        if (isReliableRow(rows[ix2])) continue; // riga di riferimento: non si tocca
+        var fittedY0 = Math.round(intercept(meanX, meanY, pitch, s2));
+        var fittedY1 = fittedY0 + medHeight;
+        var origY0 = bands[ix2][0];
+        // Diffida di un fit che sposterebbe la riga troppo lontano da dove
+        // rowBands l'aveva già individuata: probabile segno di riferimenti
+        // scarsi o di una foto con geometria diversa dal previsto.
+        if (Math.abs(fittedY0 - origY0) > medHeight * 1.5) continue;
+        var refined = buildRow(fittedY0, fittedY1);
+        refined.bandIndex = rows[ix2].bandIndex;
+        rows[ix2] = refined;
+      }
+      function intercept(mx, my, p, slot) { return (my - p * mx) + p * slot; }
+    })();
 
     var lines = [];
     var slotTexts = {};
