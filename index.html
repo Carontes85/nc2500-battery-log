@@ -398,6 +398,17 @@
         <div class="toast" id="exportToast"></div>
       </div>
 
+      <div class="card" id="debugPhotosCard" style="display:none;">
+        <h2>Foto di debug (registrazione)</h2>
+        <p class="hint">Modalit&agrave; sviluppo: l'app salva su questo telefono ogni fotogramma scattato durante la registrazione curva (nessun invio automatico a nessuno) &mdash; cos&igrave; puoi esportarli e mandarmeli in chat per migliorare la lettura. Ricordati di cancellarli ogni tanto per non riempire lo spazio.</p>
+        <p class="hint" id="debugPhotosCount">0 foto salvate</p>
+        <div class="btn-row">
+          <button class="btn-secondary" id="exportDebugPhotosBtn" type="button">Esporta foto (zip)</button>
+          <button class="btn-ghost" id="clearDebugPhotosBtn" type="button">Cancella foto salvate</button>
+        </div>
+        <div class="toast" id="debugToast"></div>
+      </div>
+
       <p class="crop-hint" style="text-align:center; padding:0 8px 4px;">ChargeLog OCR è un progetto indipendente, non affiliato n&eacute; sponsorizzato da SkyRC. I dati restano solo su questo dispositivo.</p>
     </section>
   </main>
@@ -480,7 +491,13 @@
       var params = new URLSearchParams(window.location.search);
       var token = params.get('admin');
       if (!token) return;
-      if (token === ADMIN_UNLOCK_TOKEN) setPro(true);
+      if (token === ADMIN_UNLOCK_TOKEN){
+        setPro(true);
+        // Lo stesso token attiva anche la "modalità debug" (raccolta foto
+        // durante la registrazione, vedi sotto): comodo perché è sempre Pier
+        // a usare questo sblocco, non serve un secondo token da ricordare.
+        setDebugMode(true);
+      }
       // Toglie il parametro dall'indirizzo dopo averlo letto, così non resta
       // visibile per sbaglio in cronologia, screenshot o link condivisi.
       params.delete('admin');
@@ -495,6 +512,12 @@
   }
   function setPro(on){
     try { localStorage.setItem('nc2500_pro', on ? '1' : '0'); } catch(e){}
+  }
+  function isDebugMode(){
+    try { return localStorage.getItem('nc2500_debug') === '1'; } catch(e){ return false; }
+  }
+  function setDebugMode(on){
+    try { localStorage.setItem('nc2500_debug', on ? '1' : '0'); } catch(e){}
   }
   function getStoredLicenseKey(){
     try { return localStorage.getItem('nc2500_license_key') || ''; } catch(e){ return ''; }
@@ -1229,6 +1252,7 @@
         var text = result.text || '';
         var rows = parseModeText(sessionMode, text);
         var ts = new Date().toISOString();
+        saveDebugPhoto(full, { sessionId: sessionData ? sessionData.id : null, mode: sessionMode, text: text });
         if (sessionData){
           for (var slot = 1; slot <= 6; slot++){
             if (!sessionSlotIds[slot - 1]) continue;
@@ -1638,6 +1662,218 @@
     }
   });
 
+  // ================= foto di debug (per migliorare l'OCR) =================
+  // Solo in "modalità debug" (attivata dallo stesso sblocco ?admin= usato per
+  // il PRO, vedi sopra): salva ogni fotogramma scattato durante la
+  // registrazione curva in IndexedDB, sul telefono, senza inviarlo da nessuna
+  // parte automaticamente. Da qui si può poi esportare tutto come zip e
+  // mandarlo in chat, per analizzare casi reali e migliorare lcd-ocr.js.
+  var DEBUG_DB_NAME = 'nc2500_debug_photos';
+  var DEBUG_STORE = 'photos';
+  var debugDbPromise = null;
+
+  function openDebugDb(){
+    if (debugDbPromise) return debugDbPromise;
+    debugDbPromise = new Promise(function(resolve, reject){
+      if (!window.indexedDB){ reject(new Error('IndexedDB non disponibile')); return; }
+      var req = indexedDB.open(DEBUG_DB_NAME, 1);
+      req.onupgradeneeded = function(){
+        var db = req.result;
+        if (!db.objectStoreNames.contains(DEBUG_STORE)){
+          db.createObjectStore(DEBUG_STORE, { keyPath: 'id', autoIncrement: true });
+        }
+      };
+      req.onsuccess = function(){ resolve(req.result); };
+      req.onerror = function(){ reject(req.error); };
+    });
+    return debugDbPromise;
+  }
+
+  function saveDebugPhoto(canvas, meta){
+    if (!isDebugMode()) return;
+    try {
+      canvas.toBlob(function(blob){
+        if (!blob) return;
+        openDebugDb().then(function(db){
+          var tx = db.transaction(DEBUG_STORE, 'readwrite');
+          tx.objectStore(DEBUG_STORE).add(Object.assign({ ts: Date.now(), blob: blob }, meta));
+          tx.oncomplete = function(){ updateDebugPhotosCounter(); };
+        }).catch(function(){});
+      }, 'image/jpeg', 0.75);
+    } catch(e){}
+  }
+
+  function getAllDebugPhotos(){
+    return openDebugDb().then(function(db){
+      return new Promise(function(resolve){
+        var tx = db.transaction(DEBUG_STORE, 'readonly');
+        var req = tx.objectStore(DEBUG_STORE).getAll();
+        req.onsuccess = function(){ resolve(req.result || []); };
+        req.onerror = function(){ resolve([]); };
+      });
+    }).catch(function(){ return []; });
+  }
+
+  function clearDebugPhotos(){
+    return openDebugDb().then(function(db){
+      return new Promise(function(resolve){
+        var tx = db.transaction(DEBUG_STORE, 'readwrite');
+        tx.objectStore(DEBUG_STORE).clear();
+        tx.oncomplete = function(){ resolve(); };
+        tx.onerror = function(){ resolve(); };
+      });
+    }).catch(function(){});
+  }
+
+  function fmtBytes(n){
+    if (n < 1024) return n + ' B';
+    if (n < 1024*1024) return (n/1024).toFixed(0) + ' KB';
+    return (n/(1024*1024)).toFixed(1) + ' MB';
+  }
+
+  function updateDebugPhotosCounter(){
+    if (!isDebugMode()) return;
+    getAllDebugPhotos().then(function(records){
+      var totalBytes = records.reduce(function(a,r){ return a + (r.blob ? r.blob.size : 0); }, 0);
+      $('debugPhotosCount').textContent = records.length + ' foto salvate (~' + fmtBytes(totalBytes) + ')';
+    });
+  }
+
+  function updateDebugUI(){
+    var on = isDebugMode();
+    $('debugPhotosCard').style.display = on ? 'flex' : 'none';
+    if (on) updateDebugPhotosCounter();
+  }
+
+  // ---- mini writer ZIP (solo "store", senza compressione: le foto sono già
+  // JPEG compressi, ricomprimerle non serve e appesantisce solo il calcolo) ----
+  var CRC_TABLE = (function(){
+    var table = [];
+    for (var n = 0; n < 256; n++){
+      var c = n;
+      for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      table[n] = c >>> 0;
+    }
+    return table;
+  })();
+  function crc32(bytes){
+    var crc = 0xFFFFFFFF;
+    for (var i = 0; i < bytes.length; i++) crc = CRC_TABLE[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  }
+  function dosDateTime(date){
+    var time = ((date.getHours() & 0x1F) << 11) | ((date.getMinutes() & 0x3F) << 5) | ((date.getSeconds() >> 1) & 0x1F);
+    var d = (((date.getFullYear() - 1980) & 0x7F) << 9) | (((date.getMonth() + 1) & 0xF) << 5) | (date.getDate() & 0x1F);
+    return { time: time, date: d };
+  }
+  function buildZip(files){
+    // files: [{ name, data: Uint8Array, date }]
+    var localParts = [], centralParts = [], offset = 0;
+    files.forEach(function(f){
+      var nameBytes = new TextEncoder().encode(f.name);
+      var crc = crc32(f.data);
+      var dt = dosDateTime(f.date || new Date());
+      var size = f.data.length;
+
+      var lh = new DataView(new ArrayBuffer(30));
+      lh.setUint32(0, 0x04034b50, true);
+      lh.setUint16(4, 20, true);
+      lh.setUint16(6, 0, true);
+      lh.setUint16(8, 0, true);
+      lh.setUint16(10, dt.time, true);
+      lh.setUint16(12, dt.date, true);
+      lh.setUint32(14, crc, true);
+      lh.setUint32(18, size, true);
+      lh.setUint32(22, size, true);
+      lh.setUint16(26, nameBytes.length, true);
+      lh.setUint16(28, 0, true);
+      localParts.push(new Uint8Array(lh.buffer), nameBytes, f.data);
+
+      var ch = new DataView(new ArrayBuffer(46));
+      ch.setUint32(0, 0x02014b50, true);
+      ch.setUint16(4, 20, true);
+      ch.setUint16(6, 20, true);
+      ch.setUint16(8, 0, true);
+      ch.setUint16(10, 0, true);
+      ch.setUint16(12, dt.time, true);
+      ch.setUint16(14, dt.date, true);
+      ch.setUint32(16, crc, true);
+      ch.setUint32(20, size, true);
+      ch.setUint32(24, size, true);
+      ch.setUint16(28, nameBytes.length, true);
+      ch.setUint16(30, 0, true);
+      ch.setUint16(32, 0, true);
+      ch.setUint16(34, 0, true);
+      ch.setUint16(36, 0, true);
+      ch.setUint32(38, 0, true);
+      ch.setUint32(42, offset, true);
+      centralParts.push(new Uint8Array(ch.buffer), nameBytes);
+
+      offset += lh.buffer.byteLength + nameBytes.length + size;
+    });
+
+    var centralSize = centralParts.reduce(function(a,p){ return a + p.length; }, 0);
+    var centralOffset = offset;
+    var end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true);
+    end.setUint16(4, 0, true);
+    end.setUint16(6, 0, true);
+    end.setUint16(8, files.length, true);
+    end.setUint16(10, files.length, true);
+    end.setUint32(12, centralSize, true);
+    end.setUint32(16, centralOffset, true);
+    end.setUint16(20, 0, true);
+
+    return new Blob(localParts.concat(centralParts, [new Uint8Array(end.buffer)]), { type: 'application/zip' });
+  }
+
+  function exportDebugPhotosZip(){
+    var toast = $('debugToast');
+    toast.textContent = 'Preparazione dello zip…';
+    toast.className = 'toast show';
+    getAllDebugPhotos().then(function(records){
+      if (!records.length){
+        toast.textContent = 'Nessuna foto salvata da esportare.';
+        toast.className = 'toast show err';
+        return;
+      }
+      Promise.all(records.map(function(r){
+        return r.blob.arrayBuffer().then(function(buf){
+          var d = new Date(r.ts);
+          var stamp = d.toISOString().replace(/[:.]/g, '-');
+          var name = 'foto_' + stamp + '_id' + r.id + (r.mode ? ('_' + r.mode) : '') + '.jpg';
+          return { name: name, data: new Uint8Array(buf), date: d };
+        });
+      })).then(function(files){
+        var zipBlob = buildZip(files);
+        var url = URL.createObjectURL(zipBlob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'nc2500-debug-foto-' + new Date().toISOString().slice(0,10) + '.zip';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+        toast.textContent = files.length + ' foto esportate in uno zip.';
+        toast.className = 'toast show';
+      }).catch(function(){
+        toast.textContent = 'Errore nella creazione dello zip: riprova.';
+        toast.className = 'toast show err';
+      });
+    });
+  }
+
+  $('exportDebugPhotosBtn').addEventListener('click', exportDebugPhotosZip);
+  $('clearDebugPhotosBtn').addEventListener('click', function(){
+    if (!window.confirm('Cancellare tutte le foto di debug salvate su questo telefono? Non si può annullare — esportale prima se non le hai ancora mandate.')) return;
+    clearDebugPhotos().then(function(){
+      updateDebugPhotosCounter();
+      var toast = $('debugToast');
+      toast.textContent = 'Foto di debug cancellate.';
+      toast.className = 'toast show';
+    });
+  });
+
   // ================= boot =================
   buildModeGrid();
   buildSlotGrid();
@@ -1645,6 +1881,7 @@
   updateStatusPill();
   checkAdminUnlock();
   updateProUI();
+  updateDebugUI();
   revalidateLicenseInBackground();
   initCapabilities();
   checkInProgressSession();
