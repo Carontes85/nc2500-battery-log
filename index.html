@@ -7,8 +7,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="NC2500 Log">
-<title>NC2500 Battery Log</title>
+<meta name="apple-mobile-web-app-title" content="ChargeLog">
+<title>ChargeLog OCR</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
@@ -193,8 +193,8 @@
         <path d="M9 12.5L13 12.5L11 17.5L15 17.5L10.5 23L11.5 15.5L8 15.5L9 12.5Z" fill="var(--data)"/>
       </svg>
       <div class="brand-text">
-        <h1>NC2500 Battery Log</h1>
-        <p>logger OCR &middot; Mini4WD</p>
+        <h1>ChargeLog OCR</h1>
+        <p>per SkyRC NC2500 Pro &middot; Mini4WD</p>
       </div>
     </div>
     <span class="pill muted" id="statusPill"><span class="pill-dot"></span><span id="statusPillText">avvio&hellip;</span></span>
@@ -224,6 +224,19 @@
         </div>
       </div>
 
+      <div class="card" id="proCard">
+        <h2 id="proCardTitle">Versione PRO</h2>
+        <p class="hint" id="proCardHint">Nella versione gratuita: scatto singolo e registro fino a 20 letture. Sblocca la registrazione automatica della curva nel tempo ed export CSV/TXT illimitato.</p>
+        <div class="btn-row" id="proLockedRow">
+          <input type="text" id="licenseInput" placeholder="Codice licenza" style="flex:2; min-width:140px;">
+          <button class="btn-primary" id="activateLicenseBtn" type="button" style="flex:1;">Attiva</button>
+        </div>
+        <div class="btn-row" id="proBuyRow">
+          <a class="btn-secondary" id="buyProLink" href="#" target="_blank" rel="noopener" style="text-align:center; text-decoration:none; flex:1;">Acquista la licenza PRO</a>
+        </div>
+        <div class="toast" id="licenseToast"></div>
+      </div>
+
       <div class="btn-row">
         <button class="btn-primary" id="goCaptureBtn" type="button">Continua &rarr; Cattura</button>
       </div>
@@ -245,10 +258,10 @@
             <button class="btn-primary" id="shootBtn" type="button">Scatta foto display</button>
           </div>
           <canvas id="viewCanvas" style="display:none;"></canvas>
-          <p class="crop-hint" id="cropHint" style="display:none;">Facoltativo: tocca due angoli opposti dell'area dello schermo per ritagliare, migliora la lettura.</p>
+          <p class="crop-hint" id="cropHint" style="display:none;">Tocca i 4 angoli dello schermo del display (in qualsiasi ordine): serve per raddrizzare la prospettiva e leggere i valori correttamente.</p>
           <div class="btn-row" id="cropButtons" style="display:none;">
-            <button class="btn-secondary" id="resetCropBtn" type="button">Reimposta ritaglio</button>
-            <button class="btn-primary" id="analyzeBtn" type="button">Analizza (OCR)</button>
+            <button class="btn-secondary" id="resetCropBtn" type="button">Reimposta angoli</button>
+            <button class="btn-primary" id="analyzeBtn" type="button" disabled>Analizza (tocca i 4 angoli)</button>
           </div>
         </div>
         <div class="progress-wrap" id="progressWrap">
@@ -277,16 +290,16 @@
           <video id="liveVideo" playsinline muted autoplay></video>
           <canvas id="overlayCanvas"></canvas>
         </div>
-        <p class="crop-hint" id="liveCropHint" style="display:none;">Facoltativo: tocca due angoli opposti dell'area dello schermo per ritagliare. Il ritaglio scelto vale per tutta la registrazione.</p>
+        <p class="crop-hint" id="liveCropHint" style="display:none;">Tocca i 4 angoli dello schermo del display (in qualsiasi ordine): servono per raddrizzare la prospettiva. Restano validi per tutta la registrazione.</p>
 
         <div class="btn-row">
           <button class="btn-primary" id="startCameraBtn" type="button">Avvia fotocamera</button>
-          <button class="btn-secondary" id="resetLiveCropBtn" type="button" style="display:none;">Reimposta ritaglio</button>
+          <button class="btn-secondary" id="resetLiveCropBtn" type="button" style="display:none;">Reimposta angoli</button>
         </div>
         <div id="cameraErrorBox" style="display:none; margin-top:10px; padding:10px 12px; border-radius:10px; background:var(--critical-bg); color:var(--critical); font-size:.85rem; line-height:1.5;"></div>
         <p class="crop-hint" id="cameraFrameHint" style="display:none;">Se il pulsante non fa nulla o la fotocamera non si avvia, prova ad aprire l'app a schermo intero (fuori dalla chat), tramite il link/anteprima dell'app, invece di usarla nella scheda dentro la conversazione: alcune anteprime integrate non concedono l'accesso alla fotocamera.</p>
         <div class="btn-row" id="startRecordingRow" style="display:none;">
-          <button class="btn-primary" id="startRecordingBtn" type="button">Avvia registrazione</button>
+          <button class="btn-primary" id="startRecordingBtn" type="button" disabled>Avvia registrazione (tocca i 4 angoli)</button>
         </div>
 
         <div class="live-status" id="liveStatus" style="display:none;">
@@ -384,12 +397,13 @@
         </div>
         <div class="toast" id="exportToast"></div>
       </div>
+
+      <p class="crop-hint" style="text-align:center; padding:0 8px 4px;">ChargeLog OCR è un progetto indipendente, non affiliato n&eacute; sponsorizzato da SkyRC. I dati restano solo su questo dispositivo.</p>
     </section>
   </main>
 </div>
 
-<script src="tesseract.min.js"></script>
-<script src="eng-data.js"></script>
+<script src="lcd-ocr.js"></script>
 <script>
 (function(){
   'use strict';
@@ -412,13 +426,16 @@
     resistance: { label:'mΩ', step:'0.1' }
   };
 
-  var MAX_DIM = 1400;
+  var MAX_DIM = 1400;      // canvas mostrato a schermo per toccare gli angoli
+  var MAX_DIM_OCR = 2400;  // canvas ad alta risoluzione usato per il riconoscimento
 
   // ---------- state ----------
   var state = {
     mode: 'charge',
     slotIds: ['', '', '', '', '', ''],
     workCanvas: null,
+    ocrCanvas: null,
+    ocrScaleFactor: 1,
     cropPoints: [],
     parsedRows: null,
     readings: []
@@ -434,6 +451,103 @@
 
   function fmtDate(iso){
     try { return new Date(iso).toLocaleString('it-IT'); } catch(e){ return iso; }
+  }
+
+  // ================= licenza PRO =================
+  // Verifica vera lato server: il codice inserito dall'utente viene mandato
+  // a un piccolo Cloudflare Worker (endpoint LICENSE_VERIFY_URL), che lo
+  // controlla contro l'API di Gumroad (chiave reale, acquisto non
+  // rimborsato, numero di attivazioni non superato) e risponde solo
+  // {valid:true|false}. Il risultato viene poi ricordato in locale così
+  // l'app resta sbloccata anche offline; se possibile, alla riapertura
+  // dell'app la verifica viene rifatta in background senza bloccare l'uso.
+  var LICENSE_VERIFY_URL = 'https://ANCORA-DA-IMPOSTARE.workers.dev/verify'; // <-- sostituisci con l'URL del tuo Cloudflare Worker
+  var FREE_READING_LIMIT = 20;
+  var BUY_URL = 'https://ANCORA-DA-IMPOSTARE.gumroad.com/l/PRODOTTO'; // <-- sostituisci con il link del tuo prodotto Gumroad
+
+  function isPro(){
+    try { return localStorage.getItem('nc2500_pro') === '1'; } catch(e){ return false; }
+  }
+  function setPro(on){
+    try { localStorage.setItem('nc2500_pro', on ? '1' : '0'); } catch(e){}
+  }
+  function getStoredLicenseKey(){
+    try { return localStorage.getItem('nc2500_license_key') || ''; } catch(e){ return ''; }
+  }
+  function setStoredLicenseKey(key){
+    try { localStorage.setItem('nc2500_license_key', key); } catch(e){}
+  }
+
+  function verifyLicenseKey(key){
+    return fetch(LICENSE_VERIFY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ license_key: key })
+    })
+      .then(function(resp){ return resp.json(); })
+      .then(function(data){ return { ok: true, valid: !!(data && data.valid), message: data && data.message }; })
+      .catch(function(){ return { ok: false, valid: false }; });
+  }
+
+  function updateProUI(){
+    var pro = isPro();
+    $('buyProLink').href = BUY_URL;
+    if (pro){
+      $('proCardTitle').textContent = 'Versione PRO attiva';
+      $('proCardHint').textContent = 'Grazie per il supporto! Registrazione curva ed export sono sbloccati senza limiti.';
+      $('proLockedRow').style.display = 'none';
+      $('proBuyRow').style.display = 'none';
+    } else {
+      $('proCardTitle').textContent = 'Versione PRO';
+      $('proCardHint').textContent = 'Nella versione gratuita: scatto singolo e registro fino a ' + FREE_READING_LIMIT + ' letture. Sblocca la registrazione automatica della curva nel tempo ed export CSV/TXT illimitato.';
+      $('proLockedRow').style.display = 'flex';
+      $('proBuyRow').style.display = 'flex';
+    }
+  }
+
+  $('activateLicenseBtn').addEventListener('click', function(){
+    var code = $('licenseInput').value.trim();
+    var toast = $('licenseToast');
+    if (!code){
+      toast.textContent = 'Incolla il codice ricevuto da Gumroad.';
+      toast.className = 'toast show err';
+      return;
+    }
+    $('activateLicenseBtn').disabled = true;
+    toast.textContent = 'Verifica in corso…';
+    toast.className = 'toast show';
+    verifyLicenseKey(code).then(function(res){
+      $('activateLicenseBtn').disabled = false;
+      if (!res.ok){
+        toast.textContent = 'Impossibile verificare ora (serve una connessione internet): riprova tra poco.';
+        toast.className = 'toast show err';
+        return;
+      }
+      if (res.valid){
+        setStoredLicenseKey(code);
+        setPro(true);
+        updateProUI();
+        toast.textContent = 'Licenza attivata, buon logging!';
+        toast.className = 'toast show';
+      } else {
+        toast.textContent = res.message || 'Codice non valido o già usato: controlla di averlo copiato per intero dalla ricevuta Gumroad.';
+        toast.className = 'toast show err';
+      }
+    });
+  });
+
+  // Riverifica silenziosa in background (non blocca l'uso se offline o se
+  // il worker non è ancora configurato: in quel caso lo stato rimane quello
+  // già salvato in locale).
+  function revalidateLicenseInBackground(){
+    var key = getStoredLicenseKey();
+    if (!key || !isPro()) return;
+    verifyLicenseKey(key).then(function(res){
+      if (res.ok && !res.valid){
+        setPro(false);
+        updateProUI();
+      }
+    });
   }
 
   // ================= capabilities =================
@@ -697,6 +811,17 @@
       state.workCanvas = work;
       loadedImage = work;
 
+      // canvas separato ad alta risoluzione: il riconoscimento legge da qui,
+      // non dalla versione ridotta mostrata a schermo (che perde troppi
+      // dettagli del display a matrice di punti).
+      var ocrScale = Math.min(1, MAX_DIM_OCR / Math.max(img.naturalWidth, img.naturalHeight));
+      var ow = Math.round(img.naturalWidth * ocrScale), oh = Math.round(img.naturalHeight * ocrScale);
+      var ocrCanvas = document.createElement('canvas');
+      ocrCanvas.width = ow; ocrCanvas.height = oh;
+      ocrCanvas.getContext('2d').drawImage(img, 0, 0, ow, oh);
+      state.ocrCanvas = ocrCanvas;
+      state.ocrScaleFactor = ocrScale / scale; // da coordinate viewCanvas a coordinate ocrCanvas
+
       viewCanvas.width = tw; viewCanvas.height = th;
       viewCanvas.style.display = 'block';
       $('cropHint').style.display = 'block';
@@ -725,14 +850,17 @@
       viewCtx.fillStyle = viewCtx.strokeStyle;
       viewCtx.fill();
     });
-    if (pts.length === 2){
-      var x = Math.min(pts[0].x, pts[1].x);
-      var y = Math.min(pts[0].y, pts[1].y);
-      var w = Math.abs(pts[0].x - pts[1].x);
-      var h = Math.abs(pts[0].y - pts[1].y);
-      viewCtx.strokeRect(x, y, w, h);
+    if (pts.length === 4){
+      var ordered = LcdOcr.orderCorners(pts);
+      viewCtx.beginPath();
+      viewCtx.moveTo(ordered[0].x, ordered[0].y);
+      for (var i = 1; i < ordered.length; i++) viewCtx.lineTo(ordered[i].x, ordered[i].y);
+      viewCtx.closePath();
+      viewCtx.stroke();
     }
     viewCtx.restore();
+    $('analyzeBtn').disabled = pts.length !== 4;
+    $('analyzeBtn').textContent = pts.length === 4 ? 'Analizza' : 'Analizza (tocca i 4 angoli)';
   }
 
   function canvasPointFromEvent(evt){
@@ -749,7 +877,7 @@
   viewCanvas.addEventListener('pointerdown', function(evt){
     if (!loadedImage) return;
     var p = canvasPointFromEvent(evt);
-    if (state.cropPoints.length >= 2) state.cropPoints = [];
+    if (state.cropPoints.length >= 4) state.cropPoints = [];
     state.cropPoints.push(p);
     redrawOverlay();
   });
@@ -760,122 +888,47 @@
   });
 
   // ================= OCR =================
-  // Tesseract.js fetches its English language data from a CDN by default.
-  // We ship it ourselves (base64 in eng-data.js) and seed it into the same
-  // IndexedDB store tesseract.js already checks before hitting the network
-  // (idb-keyval's default "keyval-store"/"keyval"), so the worker finds it
-  // in cache and never has to fetch anything cross-origin.
-  var langCachePromise = null;
-  function ensureLangCached(){
-    if (!langCachePromise){
-      langCachePromise = new Promise(function(resolve){
-        try {
-          var b64 = window.__ENG_TRAINEDDATA_B64__;
-          if (!b64){ resolve(false); return; }
-          var binary = atob(b64);
-          var len = binary.length;
-          var bytes = new Uint8Array(len);
-          for (var i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
-
-          var req = indexedDB.open('keyval-store');
-          req.onupgradeneeded = function(){ req.result.createObjectStore('keyval'); };
-          req.onsuccess = function(){
-            var db = req.result;
-            var tx = db.transaction('keyval', 'readwrite');
-            tx.objectStore('keyval').put(bytes, './eng.traineddata');
-            tx.oncomplete = function(){ resolve(true); };
-            tx.onerror = function(){ resolve(false); };
-          };
-          req.onerror = function(){ resolve(false); };
-        } catch (e){ resolve(false); }
-      });
-    }
-    return langCachePromise;
-  }
-
-  var workerPromise = null;
-  function getWorker(){
-    if (!workerPromise){
-      workerPromise = ensureLangCached().then(function(){
-        return Tesseract.createWorker('eng', 1, {
-          corePath: '.',
-          workerPath: 'worker.min.js',
-          langPath: '.',
-          gzip: true,
-          cacheMethod: 'write',
-          logger: onOcrProgress
-        });
-      }).then(function(worker){
-        return worker.setParameters({
-          tessedit_pageseg_mode: '6',
-          tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.:- '
-        }).then(function(){ return worker; });
-      });
-    }
-    return workerPromise;
-  }
-
-  function onOcrProgress(m){
-    var wrap = $('progressWrap');
-    wrap.classList.add('active');
-    var pct = m && typeof m.progress === 'number' ? Math.round(m.progress * 100) : 0;
-    $('progressFill').style.width = pct + '%';
-    var statusMap = {
-      'loading tesseract core': 'Caricamento motore OCR…',
-      'initializing tesseract': 'Inizializzazione…',
-      'loading language traineddata': 'Caricamento dati lingua…',
-      'initializing api': 'Preparazione…',
-      'recognizing text': 'Lettura del display…'
-    };
-    $('progressLabel').textContent = (statusMap[m && m.status] || (m && m.status) || '…') + ' ' + pct + '%';
-  }
+  // Riconoscimento dedicato al font a matrice di punti del display (vedi
+  // lcd-ocr.js): niente motore OCR generico, niente dati di lingua da
+  // caricare — il modulo è già pronto all'uso.
 
   $('analyzeBtn').addEventListener('click', function(){
-    if (!state.workCanvas) return;
-    var cropCanvas = state.workCanvas;
-    var pts = state.cropPoints;
-    if (pts.length === 2){
-      var x = Math.round(Math.min(pts[0].x, pts[1].x));
-      var y = Math.round(Math.min(pts[0].y, pts[1].y));
-      var w = Math.round(Math.abs(pts[0].x - pts[1].x));
-      var h = Math.round(Math.abs(pts[0].y - pts[1].y));
-      if (w > 20 && h > 10){
-        var c = document.createElement('canvas');
-        c.width = w; c.height = h;
-        c.getContext('2d').drawImage(state.workCanvas, x, y, w, h, 0, 0, w, h);
-        cropCanvas = c;
-      }
-    }
-    runOcr(cropCanvas);
+    if (!state.ocrCanvas || state.cropPoints.length !== 4) return;
+    var f = state.ocrScaleFactor || 1;
+    var corners = state.cropPoints.map(function(p){ return { x: p.x * f, y: p.y * f }; });
+    runOcr(state.ocrCanvas, corners);
   });
 
   function setBusy(isBusy){
-    $('analyzeBtn').disabled = isBusy;
+    $('analyzeBtn').disabled = isBusy || state.cropPoints.length !== 4;
     $('shootBtn').disabled = isBusy;
     if (!isBusy) $('progressWrap').classList.remove('active');
   }
 
-  function runOcr(canvas){
+  function runOcr(canvas, corners){
     setBusy(true);
     $('progressWrap').classList.add('active');
-    $('progressLabel').textContent = 'Avvio…';
-    $('progressFill').style.width = '0%';
-    getWorker()
-      .then(function(worker){ return worker.recognize(canvas); })
-      .then(function(result){
-        var text = result && result.data ? result.data.text : '';
+    $('progressLabel').textContent = 'Lettura del display…';
+    $('progressFill').style.width = '60%';
+    // Un breve rinvio lascia comparire lo spinner prima del calcolo
+    // (sincrono, circa 1-2s) del riconoscimento.
+    window.setTimeout(function(){
+      try {
+        var result = LcdOcr.recognizeBoard(canvas, corners);
+        var text = result.text || '';
         $('rawTextBox').textContent = text || '(nessun testo riconosciuto)';
-        var rows = parseModeText(state.mode, text || '');
+        var rows = parseModeText(state.mode, text);
         state.parsedRows = rows;
         renderResultsTable(rows);
         $('resultsCard').style.display = 'flex';
-      })
-      .catch(function(err){
-        $('rawTextBox').textContent = 'Errore OCR: ' + (err && err.message ? err.message : err);
+        $('progressFill').style.width = '100%';
+      } catch (err){
+        $('rawTextBox').textContent = 'Errore lettura: ' + (err && err.message ? err.message : err);
         renderResultsTable({});
         $('resultsCard').style.display = 'flex';
-      })
-      .then(function(){ setBusy(false); });
+      }
+      setBusy(false);
+    }, 30);
   }
 
   // ---- parsing ----
@@ -927,7 +980,7 @@
   var overlayCtx = overlayCanvas.getContext('2d');
   var liveStream = null;
   var liveCropPoints = [];
-  var liveCropRect = null;
+  var liveCropCorners = null;
   var recordTimer = null;
   var recordElapsedTimer = null;
   var recordBusy = false;
@@ -1044,14 +1097,20 @@
       overlayCtx.fillStyle = overlayCtx.strokeStyle;
       overlayCtx.fill();
     });
-    if (liveCropPoints.length === 2){
-      var x = Math.min(liveCropPoints[0].x, liveCropPoints[1].x);
-      var y = Math.min(liveCropPoints[0].y, liveCropPoints[1].y);
-      var w = Math.abs(liveCropPoints[0].x - liveCropPoints[1].x);
-      var h = Math.abs(liveCropPoints[0].y - liveCropPoints[1].y);
-      overlayCtx.strokeRect(x, y, w, h);
+    if (liveCropPoints.length === 4){
+      var ordered = LcdOcr.orderCorners(liveCropPoints);
+      overlayCtx.beginPath();
+      overlayCtx.moveTo(ordered[0].x, ordered[0].y);
+      for (var i = 1; i < ordered.length; i++) overlayCtx.lineTo(ordered[i].x, ordered[i].y);
+      overlayCtx.closePath();
+      overlayCtx.stroke();
     }
     overlayCtx.restore();
+    var btn = $('startRecordingBtn');
+    if (btn){
+      btn.disabled = liveCropPoints.length !== 4;
+      btn.textContent = liveCropPoints.length === 4 ? 'Avvia registrazione' : 'Avvia registrazione (tocca i 4 angoli)';
+    }
   }
 
   overlayCanvas.addEventListener('pointerdown', function(evt){
@@ -1061,7 +1120,7 @@
       x: clamp(evt.clientX - rect.left, 0, overlayCanvas.width),
       y: clamp(evt.clientY - rect.top, 0, overlayCanvas.height)
     };
-    if (liveCropPoints.length >= 2) liveCropPoints = [];
+    if (liveCropPoints.length >= 4) liveCropPoints = [];
     liveCropPoints.push(p);
     drawLiveOverlay();
   });
@@ -1071,15 +1130,10 @@
     drawLiveOverlay();
   });
 
-  function computeLiveCropRect(){
-    if (liveCropPoints.length !== 2 || !overlayCanvas.width) return null;
+  function computeLiveCropCorners(){
+    if (liveCropPoints.length !== 4 || !overlayCanvas.width) return null;
     var scale = liveVideo.videoWidth / overlayCanvas.width;
-    var x = Math.min(liveCropPoints[0].x, liveCropPoints[1].x) * scale;
-    var y = Math.min(liveCropPoints[0].y, liveCropPoints[1].y) * scale;
-    var w = Math.abs(liveCropPoints[0].x - liveCropPoints[1].x) * scale;
-    var h = Math.abs(liveCropPoints[0].y - liveCropPoints[1].y) * scale;
-    if (w < 20 || h < 10) return null;
-    return { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) };
+    return liveCropPoints.map(function(p){ return { x: p.x * scale, y: p.y * scale }; });
   }
 
   function requestWakeLock(){
@@ -1134,29 +1188,21 @@
   }
 
   function recordTick(){
-    if (recordBusy || !liveStream || liveVideo.readyState < 2) return;
+    if (recordBusy || !liveStream || liveVideo.readyState < 2 || !liveCropCorners) return;
     recordBusy = true;
     var full = document.createElement('canvas');
     full.width = liveVideo.videoWidth;
     full.height = liveVideo.videoHeight;
     full.getContext('2d').drawImage(liveVideo, 0, 0);
 
-    var shot = full;
-    if (liveCropRect){
-      var c = document.createElement('canvas');
-      c.width = liveCropRect.w; c.height = liveCropRect.h;
-      c.getContext('2d').drawImage(full, liveCropRect.x, liveCropRect.y, liveCropRect.w, liveCropRect.h, 0, 0, liveCropRect.w, liveCropRect.h);
-      shot = c;
-    }
-
     var sessionMode = sessionData ? sessionData.mode : state.mode;
     var sessionSlotIds = sessionData ? sessionData.slotIds : state.slotIds;
     var fields = MODE_FIELDS[sessionMode];
-    getWorker()
-      .then(function(worker){ return worker.recognize(shot); })
-      .then(function(result){
-        var text = result && result.data ? result.data.text : '';
-        var rows = parseModeText(sessionMode, text || '');
+    window.setTimeout(function(){
+      try {
+        var result = LcdOcr.recognizeBoard(full, liveCropCorners);
+        var text = result.text || '';
+        var rows = parseModeText(sessionMode, text);
         var ts = new Date().toISOString();
         if (sessionData){
           for (var slot = 1; slot <= 6; slot++){
@@ -1172,13 +1218,18 @@
           updateLiveStatusUI();
         }
         appendLiveTableRows(ts, rows, fields, sessionSlotIds);
-      })
-      .catch(function(){ /* skip this tick, keep recording */ })
-      .then(function(){ recordBusy = false; });
+      } catch (e){ /* salta questo giro, la registrazione continua */ }
+      recordBusy = false;
+    }, 0);
   }
 
   $('startRecordingBtn').addEventListener('click', function(){
-    liveCropRect = computeLiveCropRect();
+    if (!isPro()){
+      window.alert('La registrazione automatica della curva è una funzione PRO. Sblocca dalla scheda "1 · Sessione" per usarla.');
+      return;
+    }
+    liveCropCorners = computeLiveCropCorners();
+    if (!liveCropCorners) return;
     var intervalSec = parseInt($('intervalSelect').value, 10) || 30;
 
     sessionData = {
@@ -1235,7 +1286,7 @@
 
   function resetAutoRecordUI(){
     liveCropPoints = [];
-    liveCropRect = null;
+    liveCropCorners = null;
     $('startCameraBtn').disabled = false;
     $('startCameraBtn').textContent = 'Avvia fotocamera';
     $('intervalSelect').disabled = false;
@@ -1366,6 +1417,11 @@
     var toast = $('saveToast');
     if (toSave.length === 0){
       toast.textContent = 'Nessuna riga da salvare: servono un ID batteria e almeno un valore per slot.';
+      toast.className = 'toast show err';
+      return;
+    }
+    if (!isPro() && state.readings.length + toSave.length > FREE_READING_LIMIT){
+      toast.textContent = 'Hai raggiunto il limite di ' + FREE_READING_LIMIT + ' letture della versione gratuita: sblocca la PRO dalla scheda "1 · Sessione" per continuare a salvare.';
       toast.className = 'toast show err';
       return;
     }
@@ -1506,6 +1562,11 @@
   function doExport(kind){
     var rows = getFilteredReadings();
     var toast = $('exportToast');
+    if (!isPro()){
+      toast.textContent = 'L\'export CSV/TXT è una funzione PRO: sblocca dalla scheda "1 · Sessione".';
+      toast.className = 'toast show err';
+      return;
+    }
     if (!rows.length){
       toast.textContent = 'Nessuna lettura da esportare con questo filtro.';
       toast.className = 'toast show err';
@@ -1557,8 +1618,9 @@
   buildSlotGrid();
   updateCaptureHint();
   updateStatusPill();
+  updateProUI();
+  revalidateLicenseInBackground();
   initCapabilities();
-  ensureLangCached(); // warm the OCR language cache in the background
   checkInProgressSession();
 })();
 </script>

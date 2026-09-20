@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#d9531f">
+<title>ChargeLog OCR — logger per SkyRC NC2500 Pro</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --bg:#eef1f3; --surface:#ffffff; --surface-2:#e3e8ec; --border:#c7d0d8;
+    --text:#1b2430; --muted:#5b6b7a;
+    --accent:#d9531f; --accent-ink:#fff8f4; --data:#0e7c86;
+    --good:#2f8f4e; --good-bg:#e3f3e6;
+    --font-display:'Archivo',system-ui,-apple-system,sans-serif;
+    --font-mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#10151b; --surface:#1a222b; --surface-2:#212b35; --border:#2c3843;
+      --text:#e7edf2; --muted:#93a3b0;
+      --accent:#ff7a45; --accent-ink:#1a0f08; --data:#3fcdd9;
+      --good:#4caf6e; --good-bg:#16301f;
+    }
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--text); font-family:var(--font-display); }
+  .wrap{ max-width:640px; margin:0 auto; padding:32px 20px 64px; }
+  h1{ font-size:1.7rem; font-weight:800; margin:0 0 6px; line-height:1.2; }
+  .lede{ color:var(--muted); font-size:1rem; line-height:1.5; margin:0 0 24px; }
+  .hero-badge{ display:inline-flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:.72rem; font-weight:600; color:var(--data); background:var(--surface-2); padding:5px 10px; border-radius:999px; margin-bottom:14px; }
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; margin-bottom:16px; }
+  .card h2{ font-size:1.05rem; margin:0 0 10px; }
+  ul.features{ margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:10px; }
+  ul.features li{ display:flex; gap:10px; align-items:flex-start; font-size:.92rem; line-height:1.45; }
+  ul.features li b{ color:var(--data); flex:none; }
+  .price-row{ display:flex; align-items:baseline; gap:8px; margin:14px 0; }
+  .price{ font-family:var(--font-mono); font-size:2rem; font-weight:600; }
+  .price-note{ color:var(--muted); font-size:.82rem; }
+  .btn{
+    display:block; text-align:center; text-decoration:none;
+    font-family:var(--font-display); font-weight:700; font-size:.95rem;
+    padding:14px 18px; border-radius:12px; margin-top:6px;
+  }
+  .btn-primary{ background:var(--accent); color:var(--accent-ink); }
+  .btn-secondary{ background:var(--surface-2); color:var(--text); border:1px solid var(--border); }
+  .compare{ width:100%; border-collapse:collapse; font-size:.85rem; }
+  .compare th, .compare td{ text-align:left; padding:8px 6px; border-bottom:1px solid var(--border); }
+  .compare th{ color:var(--muted); font-weight:600; font-size:.72rem; text-transform:uppercase; letter-spacing:.03em; }
+  .compare td.yes{ color:var(--good); font-weight:700; }
+  .compare td.no{ color:var(--muted); }
+  .disclaimer{ font-size:.75rem; color:var(--muted); line-height:1.5; margin-top:28px; padding-top:16px; border-top:1px solid var(--border); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="hero-badge">Mini4WD &middot; SkyRC NC2500 Pro</span>
+  <h1>ChargeLog OCR</h1>
+  <p class="lede">Trasforma il telefono in un logger per il tuo caricabatterie SkyRC NC2500 Pro: fotografa il display, l'app legge i valori con l'OCR e li salva in un registro esportabile in CSV/TXT — nessun collegamento Bluetooth o PC richiesto.</p>
+
+  <div class="card">
+    <h2>Cosa fa</h2>
+    <ul class="features">
+      <li><b>&#128247;</b> Scatta una foto del display: l'app riconosce corrente, tensione, mAh (e resistenza interna in modalità IR) per ogni slot.</li>
+      <li><b>&#128200;</b> Registrazione automatica della curva: intervalli da 2 secondi a 2 minuti, per seguire l'intera carica/scarica nel tempo.</li>
+      <li><b>&#128190;</b> Esporta CSV/TXT pronti per il foglio di calcolo.</li>
+      <li><b>&#128274;</b> Tutto resta sul telefono: nessun account, nessun dato inviato altrove.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Gratis vs PRO</h2>
+    <table class="compare">
+      <thead><tr><th></th><th>Gratis</th><th>PRO</th></tr></thead>
+      <tbody>
+        <tr><td>Scatto singolo + OCR</td><td class="yes">Sì</td><td class="yes">Sì</td></tr>
+        <tr><td>Letture salvate</td><td>fino a 20</td><td class="yes">Illimitate</td></tr>
+        <tr><td>Registrazione curva nel tempo</td><td class="no">—</td><td class="yes">Sì</td></tr>
+        <tr><td>Export CSV/TXT</td><td class="no">—</td><td class="yes">Sì</td></tr>
+      </tbody>
+    </table>
+    <div class="price-row">
+      <span class="price">una tantum</span>
+      <span class="price-note">nessun abbonamento, licenza valida per sempre</span>
+    </div>
+    <a class="btn btn-primary" href="https://ANCORA-DA-IMPOSTARE.gumroad.com/l/PRODOTTO" target="_blank" rel="noopener">Acquista la licenza PRO</a>
+    <a class="btn btn-secondary" href="index.html">Prova gratis / apri l'app</a>
+  </div>
+
+  <p class="disclaimer">ChargeLog OCR è un progetto indipendente creato da un utente della community Mini4WD, non affiliato n&eacute; sponsorizzato da SkyRC. "SkyRC" e "NC2500 Pro" sono marchi dei rispettivi proprietari, citati solo per indicare la compatibilità. L'app legge il display tramite fotocamera e riconoscimento testo: verifica sempre i valori prima di usarli, l'OCR può commettere errori. Nessun dato lascia il tuo dispositivo: non raccogliamo informazioni personali.</p>
+</div>
+</body>
+</html>
