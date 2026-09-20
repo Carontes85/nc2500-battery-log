@@ -300,8 +300,8 @@
           <canvas id="overlayCanvas"></canvas>
           <div class="framing-hint" id="framingHint" style="display:none;"></div>
         </div>
-        <p class="crop-hint" id="liveCropHint" style="display:none;">Tocca i 4 angoli dello schermo del display (in qualsiasi ordine): servono per raddrizzare la prospettiva. Restano validi per tutta la registrazione.</p>
-        <p class="crop-hint" id="framingGuideExplainer" style="display:none;">Il riquadro colorato e il messaggio sopra il video sono solo un aiuto per capire se il telefono è ben allineato allo schermo — non sostituiscono il tocco dei 4 angoli qui sotto, che resta comunque necessario.</p>
+        <p class="crop-hint" id="autoCropExplainer" style="display:none;">Il ritaglio dello schermo è automatico: inquadra il display e resta fermo, il riquadro colorato lo segue da solo (verde quando l'inquadratura va bene). Non serve toccare nulla.</p>
+        <p class="crop-hint" id="liveCropHint" style="display:none;">Selezione manuale attiva: tocca i 4 angoli dello schermo del display (in qualsiasi ordine) — servono per raddrizzare la prospettiva e restano validi per tutta la registrazione.</p>
 
         <div class="btn-row">
           <button class="btn-primary" id="startCameraBtn" type="button">Avvia fotocamera</button>
@@ -309,8 +309,11 @@
         </div>
         <div id="cameraErrorBox" style="display:none; margin-top:10px; padding:10px 12px; border-radius:10px; background:var(--critical-bg); color:var(--critical); font-size:.85rem; line-height:1.5;"></div>
         <p class="crop-hint" id="cameraFrameHint" style="display:none;">Se il pulsante non fa nulla o la fotocamera non si avvia, prova ad aprire l'app a schermo intero (fuori dalla chat), tramite il link/anteprima dell'app, invece di usarla nella scheda dentro la conversazione: alcune anteprime integrate non concedono l'accesso alla fotocamera.</p>
+        <div class="btn-row" id="cropModeToggleRow" style="display:none;">
+          <button class="btn-ghost" id="cropModeToggleBtn" type="button">Il rilevamento automatico non funziona? Tocca per selezionare gli angoli a mano</button>
+        </div>
         <div class="btn-row" id="startRecordingRow" style="display:none;">
-          <button class="btn-primary" id="startRecordingBtn" type="button" disabled>Avvia registrazione (tocca i 4 angoli)</button>
+          <button class="btn-primary" id="startRecordingBtn" type="button" disabled>Avvia registrazione (inquadra lo schermo)</button>
         </div>
 
         <div class="live-status" id="liveStatus" style="display:none;">
@@ -410,8 +413,8 @@
       </div>
 
       <div class="card" id="debugPhotosCard" style="display:none;">
-        <h2>Foto di debug (registrazione)</h2>
-        <p class="hint">Modalit&agrave; sviluppo: l'app salva su questo telefono ogni fotogramma scattato durante la registrazione curva (nessun invio automatico a nessuno) &mdash; cos&igrave; puoi esportarli e mandarmeli in chat per migliorare la lettura. Ricordati di cancellarli ogni tanto per non riempire lo spazio.</p>
+        <h2>Foto di debug</h2>
+        <p class="hint">Modalit&agrave; sviluppo: l'app salva su questo telefono ogni foto analizzata &mdash; sia gli scatti singoli sia ogni fotogramma della registrazione curva (nessun invio automatico a nessuno) &mdash; cos&igrave; puoi esportarle e mandarmele in chat per migliorare la lettura. Ricordati di cancellarle ogni tanto per non riempire lo spazio.</p>
         <p class="hint" id="debugPhotosCount">0 foto salvate</p>
         <div class="btn-row">
           <button class="btn-secondary" id="exportDebugPhotosBtn" type="button">Esporta foto (zip)</button>
@@ -976,6 +979,11 @@
       try {
         var result = LcdOcr.recognizeBoard(canvas, corners);
         var text = result.text || '';
+        // Solo in "modalità debug": salva anche gli scatti singoli (non solo
+        // i fotogrammi della registrazione automatica) per poterli esportare
+        // e mandare in chat per migliorare la lettura — si autoesclude da
+        // sola se la modalità debug non è attiva (vedi saveDebugPhoto).
+        saveDebugPhoto(canvas, { sessionId: null, mode: state.mode, text: text, source: 'single' });
         $('rawTextBox').textContent = text || '(nessun testo riconosciuto)';
         var rows = parseModeText(state.mode, text);
         state.parsedRows = rows;
@@ -1041,6 +1049,12 @@
   var liveStream = null;
   var liveCropPoints = [];
   var liveCropCorners = null;
+  // 'auto' (default): il ritaglio usato dall'OCR è quello rilevato in tempo
+  // reale da frame-guide.js, ricalcolato a ogni scatto della registrazione —
+  // nessun tocco richiesto. 'manual': ripiego per quando il rilevamento
+  // automatico non trova lo schermo o lo trova nel punto sbagliato — si
+  // attiva da solo al primo tocco sul video (vedi pointerdown sotto).
+  var cropMode = 'auto';
   var recordTimer = null;
   var recordElapsedTimer = null;
   var recordBusy = false;
@@ -1118,13 +1132,12 @@
       liveVideo.srcObject = stream;
       $('videoWrap').style.display = 'block';
       liveVideo.onloadedmetadata = function(){ overlayResize(); };
-      $('liveCropHint').style.display = 'block';
-      $('framingGuideExplainer').style.display = 'block';
-      $('resetLiveCropBtn').style.display = 'inline-block';
+      $('cropModeToggleRow').style.display = 'flex';
       $('startRecordingRow').style.display = 'flex';
       $('startCameraBtn').disabled = true;
       $('startCameraBtn').textContent = 'Fotocamera attiva';
       hideCameraError();
+      setCropMode('auto');
       startFramingGuide();
     }).catch(function(err){
       settled = true;
@@ -1193,12 +1206,36 @@
     return getComputedStyle(document.documentElement).getPropertyValue(varName) || '#a8710b';
   }
 
+  // ---- selezione del ritaglio: automatica di default, manuale come ripiego ----
+  function setCropMode(mode){
+    cropMode = mode;
+    if (mode === 'manual'){
+      $('liveCropHint').style.display = 'block';
+      $('autoCropExplainer').style.display = 'none';
+      $('resetLiveCropBtn').style.display = 'inline-block';
+      $('cropModeToggleBtn').textContent = 'Torna al rilevamento automatico';
+    } else {
+      liveCropPoints = [];
+      $('liveCropHint').style.display = 'none';
+      $('autoCropExplainer').style.display = 'block';
+      $('resetLiveCropBtn').style.display = 'none';
+      $('cropModeToggleBtn').textContent = 'Il rilevamento automatico non funziona? Tocca per selezionare gli angoli a mano';
+    }
+    drawLiveOverlay();
+  }
+  $('cropModeToggleBtn').addEventListener('click', function(){
+    setCropMode(cropMode === 'auto' ? 'manual' : 'auto');
+  });
+
   function drawLiveOverlay(){
     overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
 
-    // Riquadro della guida automatica, disegnato per primo così i punti
-    // toccati dall'utente restano sempre ben visibili sopra.
-    if (lastFramingResult && lastFramingResult.corners && overlayCanvas.width && lastFramingResult.frameWidth){
+    // Riquadro della guida automatica: è il ritaglio vero e proprio quando
+    // cropMode è 'auto' (disegnato per primo così, in modalità manuale, i
+    // punti toccati dall'utente restano sempre ben visibili sopra) — in
+    // modalità manuale non si disegna più, per non confondere quale dei due
+    // riquadri sia quello davvero usato dall'OCR.
+    if (cropMode === 'auto' && lastFramingResult && lastFramingResult.corners && overlayCanvas.width && lastFramingResult.frameWidth){
       var fw = lastFramingResult.frameWidth, fh = lastFramingResult.frameHeight;
       var sx = overlayCanvas.width / fw, sy = overlayCanvas.height / fh;
       var order = ['tl', 'tr', 'br', 'bl'];
@@ -1238,13 +1275,23 @@
     overlayCtx.restore();
     var btn = $('startRecordingBtn');
     if (btn){
-      btn.disabled = liveCropPoints.length !== 4;
-      btn.textContent = liveCropPoints.length === 4 ? 'Avvia registrazione' : 'Avvia registrazione (tocca i 4 angoli)';
+      if (cropMode === 'manual'){
+        btn.disabled = liveCropPoints.length !== 4;
+        btn.textContent = liveCropPoints.length === 4 ? 'Avvia registrazione' : 'Avvia registrazione (tocca i 4 angoli)';
+      } else {
+        var detected = !!(lastFramingResult && lastFramingResult.corners);
+        btn.disabled = !detected;
+        btn.textContent = detected ? 'Avvia registrazione' : 'Avvia registrazione (inquadra lo schermo)';
+      }
     }
   }
 
   overlayCanvas.addEventListener('pointerdown', function(evt){
     if (!liveStream) return;
+    // Il primo tocco sul video, mentre si è in automatico, è il segnale che
+    // il rilevamento non sta andando bene: passa da solo alla selezione
+    // manuale invece di richiedere un passaggio esplicito a parte.
+    if (cropMode === 'auto') setCropMode('manual');
     var rect = overlayCanvas.getBoundingClientRect();
     var p = {
       x: clamp(evt.clientX - rect.left, 0, overlayCanvas.width),
@@ -1261,9 +1308,16 @@
   });
 
   function computeLiveCropCorners(){
-    if (liveCropPoints.length !== 4 || !overlayCanvas.width) return null;
-    var scale = liveVideo.videoWidth / overlayCanvas.width;
-    return liveCropPoints.map(function(p){ return { x: p.x * scale, y: p.y * scale }; });
+    if (cropMode === 'manual'){
+      if (liveCropPoints.length !== 4 || !overlayCanvas.width) return null;
+      var scale = liveVideo.videoWidth / overlayCanvas.width;
+      return liveCropPoints.map(function(p){ return { x: p.x * scale, y: p.y * scale }; });
+    }
+    if (lastFramingResult && lastFramingResult.corners){
+      var c = lastFramingResult.corners;
+      return [c.tl, c.tr, c.br, c.bl];
+    }
+    return null;
   }
 
   function requestWakeLock(){
@@ -1318,19 +1372,31 @@
   }
 
   function recordTick(){
-    if (recordBusy || !liveStream || liveVideo.readyState < 2 || !liveCropCorners) return;
-    recordBusy = true;
+    if (recordBusy || !liveStream || liveVideo.readyState < 2) return;
     var full = document.createElement('canvas');
     full.width = liveVideo.videoWidth;
     full.height = liveVideo.videoHeight;
     full.getContext('2d').drawImage(liveVideo, 0, 0);
 
+    // In automatico si ridetermina il rettangolo a ogni scatto (invece di
+    // congelarlo a inizio registrazione): se il telefono si sposta un po'
+    // durante una registrazione lunga, ogni lettura usa comunque l'ultima
+    // posizione vista, non quella di minuti prima. In manuale restano gli
+    // angoli toccati a inizio registrazione, come sempre.
+    var corners = cropMode === 'manual' ? liveCropCorners : (function(){
+      var fresh = null;
+      try { fresh = FrameGuide.analyzeFrame(full, { targetW: 200 }); } catch (e){}
+      return (fresh && fresh.corners) ? [fresh.corners.tl, fresh.corners.tr, fresh.corners.br, fresh.corners.bl] : null;
+    })();
+    if (!corners) return; // nessun rilevamento/angoli validi: si salta questo giro
+
+    recordBusy = true;
     var sessionMode = sessionData ? sessionData.mode : state.mode;
     var sessionSlotIds = sessionData ? sessionData.slotIds : state.slotIds;
     var fields = MODE_FIELDS[sessionMode];
     window.setTimeout(function(){
       try {
-        var result = LcdOcr.recognizeBoard(full, liveCropCorners);
+        var result = LcdOcr.recognizeBoard(full, corners);
         var text = result.text || '';
         var rows = parseModeText(sessionMode, text);
         var ts = new Date().toISOString();
@@ -1380,6 +1446,9 @@
     $('liveStatus').style.display = 'flex';
     $('startRecordingRow').style.display = 'none';
     $('resetLiveCropBtn').style.display = 'none';
+    $('cropModeToggleRow').style.display = 'none';
+    $('liveCropHint').style.display = 'none';
+    $('autoCropExplainer').style.display = 'none';
     $('intervalSelect').disabled = true;
 
     requestWakeLock();
@@ -1396,7 +1465,9 @@
     if (liveStream){ liveStream.getTracks().forEach(function(t){ t.stop(); }); liveStream = null; }
     $('videoWrap').style.display = 'none';
     $('liveStatus').style.display = 'none';
-    $('framingGuideExplainer').style.display = 'none';
+    $('cropModeToggleRow').style.display = 'none';
+    $('autoCropExplainer').style.display = 'none';
+    $('liveCropHint').style.display = 'none';
   }
 
   $('stopRecordingBtn').addEventListener('click', function(){
@@ -1420,6 +1491,7 @@
   function resetAutoRecordUI(){
     liveCropPoints = [];
     liveCropCorners = null;
+    cropMode = 'auto';
     $('startCameraBtn').disabled = false;
     $('startCameraBtn').textContent = 'Avvia fotocamera';
     $('intervalSelect').disabled = false;
